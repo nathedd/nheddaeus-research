@@ -51,6 +51,7 @@ def fill_vars():
 
 
 def get_zpavg():
+    """Helper method for rescale()."""
     tot = 0
     size = 0
     for index in zpdiff:
@@ -70,6 +71,7 @@ def rescale():  # need to add index out of bounds errors for < first index in li
     for index in forceddiffimfluxunc:  # check calculations
         if forceddiffimfluxunc[index] != None:  # if statement will probably be unnecessary later on
             forceddiffimfluxunc_new[index] = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
+
 
 def collapse_flux():  # will need to be reworked for specific time window; check calculations
     """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average."""
