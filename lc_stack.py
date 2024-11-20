@@ -50,27 +50,30 @@ def fill_vars():
         filter[int(columns[0])] = (columns[4])
 
 
-def get_zpavg():
+def get_zpavg(start, end):  # start, end inclusive
     """Helper method for rescale()."""
     tot = 0
     size = 0
     for index in zpdiff:
-        if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
-            tot += zpdiff[index]
-            size += 1
+        if index in range(start, end):
+            if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
+                tot += zpdiff[index]
+                size += 1
     return (tot/size)
 
 
-def rescale():  # need to add index out of bounds errors for < first index in list, > last index in list
+def rescale(start, end):  # start, end inclusive; need to add index out of bounds errors for < first index in list, > last index in list
     """Given lists of ascii data, make new columns for forcediffimfluxi and forceddiffimfluxunci with rescaled input fluxes and uncertainties."""
-    zpavg = get_zpavg()
+    zpavg = get_zpavg(start, end + 1)
     for index in forceddiffimflux:  # check calculations
-        if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
-            forceddiffimflux_new[index] = forceddiffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
-    
+        if index in range (start, end + 1):
+            if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
+                forceddiffimflux_new[index] = forceddiffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
+        
     for index in forceddiffimfluxunc:  # check calculations
-        if forceddiffimfluxunc[index] != None:  # if statement will probably be unnecessary later on
-            forceddiffimfluxunc_new[index] = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
+        if index in range(start, end + 1):
+            if forceddiffimfluxunc[index] != None:  # if statement will probably be unnecessary later on
+                forceddiffimfluxunc_new[index] = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
 
 
 def collapse_flux():  # will need to be reworked for specific time window; check calculations
@@ -90,9 +93,9 @@ def collapse_flux():  # will need to be reworked for specific time window; check
 # Step 4. Convert Flux to calibrated magnitudes with upper-limits; see section 12 and 13.
 
 def main():
-    fill_vars(data)
-    #print(get_zpavg())
-    rescale()
+    fill_vars()
+    #print(get_zpavg(0, 2335))
+    rescale(0, 2335)
     #print(forceddiffimfluxunc)
     #print(forceddiffimfluxunc_new)
     #print(zpdiff)
