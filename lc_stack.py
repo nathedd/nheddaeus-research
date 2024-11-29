@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-11-19
+Date: 2024-11-29
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 with open('results_ZTF24aapvieu.txt') as f: # open .txt file; need to find means of inputting file
     data = f.readlines()[57:2393]  # readlines may be a temporary measure in place of a better method of reading the file; index 57 may be specific to this file
 
-# storing variable data as dictionaries of {index, <var>} for now; may want to change indices to jd
+# storing variable data as dictionaries of {index, <var>}; it is assumed that indices of desired jd for measurement will be known at this stage
 jd = {}
 forceddiffimflux = {}
 forceddiffimfluxunc = {}
@@ -29,7 +29,9 @@ zpdiff = {}
 filter = {}
 
 forceddiffimflux_new = {}
+flux_by_filter = {}  # {filter, list of flux}
 forceddiffimfluxunc_new = {}
+unc_by_filter = {}  # {filter, list of unc}
 
 
 def fill_vars():
@@ -37,17 +39,17 @@ def fill_vars():
     for line in data:
         line = line.strip()
         columns = line.split()
-        jd[int(columns[0])] = (float(columns[22]))
-        if (columns[24] != 'null'):  # this may be a temporary measure, assuming null values will not be included at this stage
-            forceddiffimflux[int(columns[0])] = (float(columns[24]))
+        jd[int(columns[0])] = (float(columns[22]))  # creates dictionary of {index, julian day}
+        if (columns[24] != 'null'): 
+            forceddiffimflux[int(columns[0])] = (float(columns[24]))  # creates dictionary of {index, flux}
         else:
-            forceddiffimflux[int(columns[0])] = (None)
-        if (columns[25] != 'null'):
-            forceddiffimfluxunc[int(columns[0])] = (float(columns[25]))  # this may be a temporary measure, assumming null values will not be included at this stage
+            forceddiffimflux[int(columns[0])] = (None)  # catches unusable data points
+        if (columns[25] != 'null'): 
+            forceddiffimfluxunc[int(columns[0])] = (float(columns[25]))  # creates dictionary of {index, flux uncertainty}
         else:
-            forceddiffimflux[int(columns[0])] = (None)
-        zpdiff[int(columns[0])] = (float(columns[20]))
-        filter[int(columns[0])] = (columns[4])
+            forceddiffimflux[int(columns[0])] = (None)  # catches unusable data points
+        zpdiff[int(columns[0])] = (float(columns[20]))  # creates dictionary of {index, zero points}
+        filter[int(columns[0])] = (columns[4])  # creates dictionary of {index, filter}
 
 
 def get_zpavg(start, end):  # start, end inclusive
@@ -65,15 +67,44 @@ def get_zpavg(start, end):  # start, end inclusive
 def rescale(start, end):  # start, end inclusive; need to add index out of bounds errors for < first index in list, > last index in list
     """Given lists of ascii data, make new columns for forcediffimfluxi and forceddiffimfluxunci with rescaled input fluxes and uncertainties."""
     zpavg = get_zpavg(start, end + 1)
+    g_list = []  # list of rescaled fluxes in the g band
+    r_list = []  # list of rescaled fluxes in the r band
+    i_list = []  # list of rescaled fluxes in the i band
+    g_unc_list = []  # list of rescaled uncertainties in the g band
+    r_unc_list = []  # list of rescaled uncertainties in the r band
+    i_unc_list = []  # list of rescaled uncertainties in the i band
+
     for index in forceddiffimflux:  # check calculations
         if index in range (start, end + 1):
             if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
-                forceddiffimflux_new[index] = forceddiffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
-        
+                new = forceddiffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))
+                forceddiffimflux_new[index] = new  # place fluxes on the same photometric zeropoint
+                if filter[index] == 'ZTF_g':
+                    g_list.append(new)
+                elif filter[index] == 'ZTF_r':
+                    r_list.append(new)
+                elif filter[index] == 'ZTF_i':
+                    i_list.append(new)
+    
+    flux_by_filter['ZTF_g'] = g_list
+    flux_by_filter['ZTF_r'] = r_list
+    flux_by_filter['ZTF_i'] = i_list
+
     for index in forceddiffimfluxunc:  # check calculations
         if index in range(start, end + 1):
             if forceddiffimfluxunc[index] != None:  # if statement will probably be unnecessary later on
-                forceddiffimfluxunc_new[index] = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
+                new = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))
+                forceddiffimfluxunc_new[index] = new  # place uncertainties on the same photometric zeropoint
+                if filter[index] == 'ZTF_g':
+                    g_unc_list.append(new)
+                elif filter[index] == 'ZTF_r':
+                    r_unc_list.append(new)
+                elif filter[index] == 'ZTF_i':
+                    i_unc_list.append(new)
+    
+    unc_by_filter['ZTF_g'] = g_unc_list
+    unc_by_filter['ZTF_r'] = r_unc_list
+    unc_by_filter['ZTF_i'] = i_unc_list
 
 
 def collapse_flux():  # will need to be reworked for specific time window; check calculations
@@ -88,6 +119,11 @@ def collapse_flux():  # will need to be reworked for specific time window; check
     flux_unc = w_tot**(-1/2)  # effectively forceddiffimfluxunc_new/sqrt(n)
     return flux, flux_unc
 
+
+def collapse_flux_by_filter():
+    """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average. Bin Separately by Filter"""
+    # g, r, i band
+    
 # Step 3. Alternative Method for Collapsing Measurements: TBD
 
 # Step 4. Convert Flux to calibrated magnitudes with upper-limits; see section 12 and 13.
@@ -96,9 +132,10 @@ def main():
     fill_vars()
     #print(get_zpavg(0, 2335))
     rescale(0, 2335)
+    print(unc_by_filter)
     #print(forceddiffimfluxunc)
     #print(forceddiffimfluxunc_new)
     #print(zpdiff)
-    collapse_flux()
+    #collapse_flux()
 
 main()
