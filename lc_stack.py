@@ -52,12 +52,12 @@ def fill_vars():
         filter[int(columns[0])] = (columns[4])  # creates dictionary of {index, filter}
 
 
-def get_zpavg(start, end):  # start, end inclusive
+def get_zpavg(start, end):  # start, end inclusive, needs to be updated to calculate by filter
     """Helper method for rescale()."""
     tot = 0
     size = 0
     for index in zpdiff:
-        if index in range(start, end):
+        if index in range(start, end + 1):
             if forceddiffimflux[index] != None and forceddiffimfluxunc[index] != None:  
                 tot += zpdiff[index]
                 size += 1
@@ -78,7 +78,7 @@ def rescale(start, end):  # start, end inclusive; need to add index out of bound
         if index in range (start, end + 1):
             if forceddiffimflux[index] != None and forceddiffimfluxunc[index] != None:  # skips unusable data points
                 new = forceddiffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))
-                forceddiffimflux_new[index] = new  # place fluxes on the same photometric zeropoint
+                forceddiffimflux_new[index] = new  # place fluxes on the same photometric zeropoint, may be removable
                 # sorts new flux by filter
                 if filter[index] == 'ZTF_g':
                     g_list.append(new)
@@ -95,7 +95,7 @@ def rescale(start, end):  # start, end inclusive; need to add index out of bound
         if index in range(start, end + 1):
             if forceddiffimfluxunc[index] != None and forceddiffimflux[index] != None:  # skips unusable data points
                 new = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))
-                forceddiffimfluxunc_new[index] = new  # place uncertainties on the same photometric zeropoint
+                forceddiffimfluxunc_new[index] = new  # place uncertainties on the same photometric zeropoint, may be removable
                 # sorts new uncertainty by filter
                 if filter[index] == 'ZTF_g':
                     g_unc_list.append(new)
