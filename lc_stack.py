@@ -58,7 +58,7 @@ def get_zpavg(start, end):  # start, end inclusive
     size = 0
     for index in zpdiff:
         if index in range(start, end):
-            if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
+            if forceddiffimflux[index] != None and forceddiffimfluxunc[index] != None:  
                 tot += zpdiff[index]
                 size += 1
     return (tot/size)
@@ -76,9 +76,10 @@ def rescale(start, end):  # start, end inclusive; need to add index out of bound
 
     for index in forceddiffimflux:  # check calculations
         if index in range (start, end + 1):
-            if forceddiffimflux[index] != None:  # if statement will probably be unnecessary later on
+            if forceddiffimflux[index] != None and forceddiffimfluxunc[index] != None:  # skips unusable data points
                 new = forceddiffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))
                 forceddiffimflux_new[index] = new  # place fluxes on the same photometric zeropoint
+                # sorts new flux by filter
                 if filter[index] == 'ZTF_g':
                     g_list.append(new)
                 elif filter[index] == 'ZTF_r':
@@ -92,9 +93,10 @@ def rescale(start, end):  # start, end inclusive; need to add index out of bound
 
     for index in forceddiffimfluxunc:  # check calculations
         if index in range(start, end + 1):
-            if forceddiffimfluxunc[index] != None:  # if statement will probably be unnecessary later on
+            if forceddiffimfluxunc[index] != None and forceddiffimflux[index] != None:  # skips unusable data points
                 new = forceddiffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))
                 forceddiffimfluxunc_new[index] = new  # place uncertainties on the same photometric zeropoint
+                # sorts new uncertainty by filter
                 if filter[index] == 'ZTF_g':
                     g_unc_list.append(new)
                 elif filter[index] == 'ZTF_r':
@@ -107,22 +109,32 @@ def rescale(start, end):  # start, end inclusive; need to add index out of bound
     unc_by_filter['ZTF_i'] = i_unc_list
 
 
-def collapse_flux():  # will need to be reworked for specific time window; check calculations
-    """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average."""
-    flux = 0
-    w_tot = 0
-    for index in forceddiffimflux_new:
-        w = 1/(forceddiffimfluxunc_new[index])**2  # weight (uncertainty)
-        w_tot += w  # summation of weighted uncertainties
-        flux += w*forceddiffimflux_new[index]
-    flux = flux / w_tot
-    flux_unc = w_tot**(-1/2)  # effectively forceddiffimfluxunc_new/sqrt(n)
-    return flux, flux_unc
+# def collapse_flux():  # will need to be reworked for specific time window; check calculations
+#     """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average."""
+#     flux = 0
+#     w_tot = 0
+#     for index in forceddiffimflux_new:
+#         w = 1/(forceddiffimfluxunc_new[index])**2  # weight (uncertainty)
+#         w_tot += w  # summation of weighted uncertainties
+#         flux += w*forceddiffimflux_new[index]
+#     flux = flux / w_tot
+#     flux_unc = w_tot**(-1/2)  # effectively forceddiffimfluxunc_new/sqrt(n)
+#     return flux, flux_unc
 
 
-def collapse_flux_by_filter():
+def collapse_flux_by_filter():  # needs testing
     """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average. Bin Separately by Filter"""
-    # g, r, i band
+    for filter in flux_by_filter:
+        flux = 0
+        w_tot = 0
+        for point in flux_by_filter[filter]:
+            w = 1/(point)**2  # weight (uncertainty)
+            w_tot += w
+            flux += w*point
+        flux = flux / w_tot
+        flux_unc = w_tot**(-1/2)
+        print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))
+
     
 # Step 3. Alternative Method for Collapsing Measurements: TBD
 
@@ -132,10 +144,10 @@ def main():
     fill_vars()
     #print(get_zpavg(0, 2335))
     rescale(0, 2335)
-    print(unc_by_filter)
+    #print(unc_by_filter)
     #print(forceddiffimfluxunc)
     #print(forceddiffimfluxunc_new)
     #print(zpdiff)
-    #collapse_flux()
+    collapse_flux_by_filter()
 
 main()
