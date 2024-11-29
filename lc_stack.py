@@ -131,9 +131,10 @@ def collapse_flux_by_filter():  # needs testing
             w = 1/(point)**2  # weight (uncertainty)
             w_tot += w
             flux += w*point
-        flux = flux / w_tot
-        flux_unc = w_tot**(-1/2)
-        print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))
+        if w_tot != 0:
+            flux = flux / w_tot
+            flux_unc = w_tot**(-1/2) 
+        print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))  # will need to convert these to variables
 
     
 # Step 3. Alternative Method for Collapsing Measurements: TBD
