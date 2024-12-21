@@ -4,25 +4,23 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-11-29
+Date: 2024-12-21
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
 Contact: nathedd@unc.edu
 """
 
+# use of user inputs to select desired binning window
+file_name = str(input("Enter filename: "))
+start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates
+end = 58 + int(input("Enter ending index: "))
 
-from astropy.io import ascii  # ZTF data file will be in ascii format
-from astropy.table import Table
-import numpy as np
-import matplotlib.pyplot as plt
+with open(file_name) as f: # opens .txt file
+    data = f.readlines()[start: end]
 
-
-with open('results_ZTF24aapvieu.txt') as f: # open .txt file; need to find means of inputting file
-    data = f.readlines()[57:2393]  # readlines may be a temporary measure in place of a better method of reading the file; index 57 may be specific to this file
-
-# storing variable data as dictionaries of {index, <var>}; it is assumed that indices of desired jd for measurement will be known at this stage
-jd = {}
+# storing variable data as dictionaries: key = index, value = column of file_name
+jd = {}  # julian day; not used in these methods but may be passed to other files
 forceddiffimflux = {}
 forceddiffimfluxunc = {}
 zpdiff = {}
@@ -35,7 +33,7 @@ unc_by_filter = {}  # {filter, list of unc}
 
 
 def fill_vars():
-    "Method for taking a string of ascii data and converting it to variables."
+    "Takes a string of ascii data and converts it to dictionary variables."
     for line in data:
         line = line.strip()
         columns = line.split()
@@ -146,7 +144,7 @@ def main():
     #print(get_zpavg(0, 2335))
     rescale(0, 2335)
     #print(unc_by_filter)
-    #print(forceddiffimfluxunc)
+    print(forceddiffimfluxunc)
     #print(forceddiffimfluxunc_new)
     #print(zpdiff)
     collapse_flux_by_filter()
