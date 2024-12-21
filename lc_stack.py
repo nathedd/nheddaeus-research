@@ -11,6 +11,8 @@ Description: Given a dataframe with a maxlike light curve, stack the flux. Based
 Contact: nathedd@unc.edu
 """
 
+import math
+
 # use of user inputs to select desired binning window
 file_name = str(input("Enter filename: "))
 start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates
@@ -56,7 +58,7 @@ def get_zpavg():  # start, end inclusive, needs to be updated to calculate by fi
     size = 0
     for index in zpdiff:
         if forceddiffimflux[index] != None and forceddiffimfluxunc[index] != None:  
-            tot += zpdiff[index]
+            tot += zpdiff[index]  # zpdiff appears to be more or less consistent across filters
             size += 1
     return (tot/size)
 
@@ -118,14 +120,22 @@ def collapse_flux_by_filter():  # needs testing
             flux_unc = w_tot**(-1/2) 
         print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))  # will need to convert these to variables
 
-    
-# Step 3. Alternative Method for Collapsing Measurements: TBD
 
-# Step 4. Convert Flux to calibrated magnitudes with upper-limits; see section 12 and 13.
+def cal_mag():  # will need to use the zpavg value assumed when rescaling the input fluxes
+    """Obtaining calibrated magnitudes (for transients)."""
+    if (('forceddiffimflux' / 'forceddiffimfluxunc') > 5):  # will need to take flux and unc from collapse_flux_by_filter; 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
+        # confident detection, plot magnitude with error bars
+        mag = 'zpdiff' - 2.5*log10['forceddiffimflux']
+        sigma = 1.0857 * 'forceddiffimfluxunc'/'forceddiffimflux'
+    else:
+        # compute upper flux limits and plot as arrow
+        mag = zp = 2.5*log10[3 * 'forceddiffimfluxunc']  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+
 
 def main():
     fill_vars()
     rescale()
     collapse_flux_by_filter()
+    print(zpdiff)
 
 main()
