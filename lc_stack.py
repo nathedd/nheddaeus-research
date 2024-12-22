@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-12-21
+Date: 2024-12-22
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -69,7 +69,7 @@ def get_zpavg():  # start, end inclusive, needs to be updated to calculate by fi
 
 def rescale():  # start, end inclusive; need to add index out of bounds errors for < first index in list, > last index in list
     """Given lists of ascii data, make new columns for forcediffimfluxi and forceddiffimfluxunci with rescaled input fluxes and uncertainties."""
-    zpavg =  28.9891
+    zpavg =  26.13802754993896
     g_list = []  # list of rescaled fluxes in the g band
     r_list = []  # list of rescaled fluxes in the r band
     i_list = []  # list of rescaled fluxes in the i band
@@ -131,7 +131,7 @@ def collapse_flux_by_filter():  # needs testing
         if w_tot != 0:
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
-        print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))  # will need to convert these to variables
+            print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))  # will need to convert these to variables
 
 
 def cal_mag():  # will need to use the zpavg value assumed when rescaling the input fluxes
