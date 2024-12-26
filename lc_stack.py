@@ -17,6 +17,7 @@ import math
 file_name = str(input("Enter filename: "))
 start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates
 end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1
+baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forceddiffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
 
 with open(file_name) as f: # opens .txt file
     data = f.readlines()[start: end]
@@ -45,15 +46,21 @@ def fill_vars():  # null value replacement with None may be unneccessary now
         if (columns[24] != 'null'): 
             forceddiffimflux[int(columns[0])] = (float(columns[24]))  # creates dictionary of {index, flux}
         else:
-            forceddiffimflux[int(columns[0])] = (None)  # catches unusable data points
+            forceddiffimflux[int(columns[0])] = (None)  # catches unusable data points; fills with None for consistency between variables
         
         if (columns[25] != 'null'): 
             forceddiffimfluxunc[int(columns[0])] = (float(columns[25]))  # creates dictionary of {index, flux uncertainty}
         else:
-            forceddiffimflux[int(columns[0])] = (None)  # catches unusable data points
+            forceddiffimflux[int(columns[0])] = (None)  # catches unusable data points; fills with None for consistency between variables
         
         zpdiff[int(columns[0])] = (float(columns[20]))  # creates dictionary of {index, zero points}
         filter[int(columns[0])] = (columns[4])  # creates dictionary of {index, filter}
+
+
+def correct_baseline():
+    for key in forceddiffimflux:
+        """Following an estimate of the baseline level, subtract estimate from differential flux measurements."""
+        forceddiffimflux[key] = forceddiffimflux[key] - baseline
 
 
 def get_zpavg():  # start, end inclusive, needs to be updated to calculate by filter
@@ -147,6 +154,8 @@ def cal_mag():  # will need to use the zpavg value assumed when rescaling the in
 
 def main():
     fill_vars()
+    if baseline != 0:
+        correct_baseline()
     rescale()
     collapse_flux_by_filter()
 
