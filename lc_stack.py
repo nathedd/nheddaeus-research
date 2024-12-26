@@ -58,9 +58,10 @@ def fill_vars():  # null value replacement with None may be unneccessary now
 
 
 def correct_baseline():
-    for key in forceddiffimflux:
+    for index in forceddiffimflux:
         """Following an estimate of the baseline level, subtract estimate from differential flux measurements."""
-        forceddiffimflux[key] = forceddiffimflux[key] - baseline
+        if forceddiffimflux[index] != None:
+            forceddiffimflux[index] = forceddiffimflux[index] - baseline
 
 
 def get_zpavg():  # start, end inclusive, needs to be updated to calculate by filter
