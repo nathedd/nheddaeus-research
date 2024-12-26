@@ -12,6 +12,7 @@ Contact: nathedd@unc.edu
 """
 
 import math
+import matplotlib.pyplot as plt
 
 # use of user inputs to select desired binning window
 file_name = str(input("Enter filename: "))
@@ -34,6 +35,7 @@ forcediffimflux_new = {}  # not used in these methods but may be passed to other
 flux_by_filter = {}  # {filter, list of flux}
 forcediffimfluxunc_new = {}  # not used in these methods but may be passed to other files
 unc_by_filter = {}  # {filter, list of unc}
+jd_by_filter = {}  # {filter, jd}; index of jd should match index of flux or unc in their dictionaries
 
 
 def fill_vars():  # null value replacement with None may be unneccessary now
@@ -114,6 +116,9 @@ def rescale():  # start, end inclusive; need to add index out of bounds errors f
     g_unc_list = []  # list of rescaled uncertainties in the g band
     r_unc_list = []  # list of rescaled uncertainties in the r band
     i_unc_list = []  # list of rescaled uncertainties in the i band
+    g_jd = []
+    r_jd = []
+    i_jd = []
 
     for index in forcediffimflux:  # check calculations
         if forcediffimflux[index] != None and forcediffimfluxunc[index] != None:  # skips unusable data points
@@ -123,16 +128,23 @@ def rescale():  # start, end inclusive; need to add index out of bounds errors f
             # sorts new flux by filter
             if filter[index] == 'ZTF_g':
                 g_list.append(new)
+                g_jd.append(index)
             
             elif filter[index] == 'ZTF_r':
                 r_list.append(new)
+                r_jd.append(index)
             
             elif filter[index] == 'ZTF_i':
                 i_list.append(new)
+                i_jd.append(index)
     
     flux_by_filter['ZTF_g'] = g_list
     flux_by_filter['ZTF_r'] = r_list
     flux_by_filter['ZTF_i'] = i_list
+
+    jd_by_filter['ZTF_g'] = g_jd
+    jd_by_filter['ZTF_r'] = r_jd
+    jd_by_filter['ZTF_i'] = i_jd
 
     for index in forcediffimfluxunc:  # check calculations
         if forcediffimfluxunc[index] != None and forcediffimflux[index] != None:  # skips unusable data points
@@ -170,18 +182,41 @@ def collapse_flux_by_filter():  # needs testing
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
             print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))  # will need to convert these to variables
+            cal_mag(flux, flux_unc)
 
 
-def cal_mag():  # will need to use the zpavg value assumed when rescaling the input fluxes
+def cal_mag(flux, flux_unc):  # will need to use the zpavg value assumed when rescaling the input fluxes
     """Obtaining calibrated magnitudes (for transients)."""
-    if (('forcediffimflux' / 'forcediffimfluxunc') > 5):  # will need to take flux and unc from collapse_flux_by_filter; 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
+    zpavg = min(zpdiff.values())
+    if ((flux / flux_unc) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
         # confident detection, plot magnitude with error bars
-        mag = 'zpdiff' - 2.5*log10['forcediffimflux']
-        sigma = 1.0857 * 'forcediffimfluxunc'/'forcediffimflux'
+        for filter in flux_by_filter:
+            mag = []
+            sigma = []
+            jd_fil = []
+            for index in unc_by_filter[filter]:  # need to include jd somehow
+                mag.append(zpavg - 2.5*math.log10(index))  # plotted as points
+                sigma.append(1.0857 * index)  # error bars
+            idx = 0
+            for index in flux_by_filter[filter]:
+                sigma[idx] = sigma[idx]/index
+                idx += 1
+            for index in jd_by_filter[filter]:
+                jd_fil.append(index)
+
+        plt.scatter(jd_fil, mag)
+        # plt.errorbar(mag, jd_fil, yerr=sigma) 
+        plt.show()
     else:
         # compute upper flux limits and plot as arrow
-        mag = zp = 2.5*log10[3 * 'forcediffimfluxunc']  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-
+        for filter in unc_by_filter:
+            mag = []
+            jd_fil = []
+            for index in unc_by_filter[filter]:
+                mag.append(zpavg - 2.5*math.log10(3*index))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+            for index in jd_by_filter[filter]:
+                jd_fil.append(index)
+        # plot as arrow
 
 def main():
     fill_vars()
