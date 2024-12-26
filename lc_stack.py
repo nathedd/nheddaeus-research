@@ -105,20 +105,9 @@ def validate_uncertainties():
                 forcediffimfluxunc[index] = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
 
 
-def get_zpavg():  # start, end inclusive, needs to be updated to calculate by filter
-    """Helper method for rescale()."""
-    tot = 0
-    size = 0
-    for index in zpdiff:
-        if forcediffimflux[index] != None and forcediffimfluxunc[index] != None:  
-            tot += zpdiff[index]  # zpdiff appears to be more or less consistent across filters
-            size += 1
-    return (tot/size)
-
-
 def rescale():  # start, end inclusive; need to add index out of bounds errors for < first index in list, > last index in list
     """Given lists of ascii data, make new columns for forcediffimfluxi and forcediffimfluxunci with rescaled input fluxes and uncertainties."""
-    zpavg =  26.13802754993896
+    zpavg =  min(zpdiff.values())  # flux / uncertainty ratio is consistent for any value; picking min for simplicity
     g_list = []  # list of rescaled fluxes in the g band
     r_list = []  # list of rescaled fluxes in the r band
     i_list = []  # list of rescaled fluxes in the i band
