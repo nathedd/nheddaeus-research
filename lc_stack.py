@@ -128,15 +128,15 @@ def rescale():  # start, end inclusive; need to add index out of bounds errors f
             # sorts new flux by filter
             if filter[index] == 'ZTF_g':
                 g_list.append(new)
-                g_jd.append(index)
+                g_jd.append(jd[index])
             
             elif filter[index] == 'ZTF_r':
                 r_list.append(new)
-                r_jd.append(index)
+                r_jd.append(jd[index])
             
             elif filter[index] == 'ZTF_i':
                 i_list.append(new)
-                i_jd.append(index)
+                i_jd.append(jd[index])
     
     flux_by_filter['ZTF_g'] = g_list
     flux_by_filter['ZTF_r'] = r_list
