@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-12-26
+Date: 2024-12-27
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -196,43 +196,36 @@ def collapse_flux_by_filter():
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
             print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc)) 
-            cal_mag(flux, flux_unc)
+            cal_mag(flux, flux_unc, filter)
         
         combined_flux[filter] = flux
         combined_unc[filter] = flux_unc
 
 
-def cal_mag(flux, flux_unc):  # will need to use the zpavg value assumed when rescaling the input fluxes
+def cal_mag(flux, flux_unc, filter):
     """Obtaining calibrated magnitudes (for transients)."""
     zpavg = min(zpdiff.values())
     if ((flux / flux_unc) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
         # confident detection, plot magnitude with error bars
-        for filter in flux_by_filter:
-            mag = []
-            sigma = []
-            jd_fil = []
-            for index in unc_by_filter[filter]:  # need to include jd somehow
-                mag.append(zpavg - 2.5*math.log10(index))  # plotted as points
-                sigma.append(1.0857 * index)  # error bars
-            idx = 0
-            for index in flux_by_filter[filter]:
-                sigma[idx] = sigma[idx]/index
-                idx += 1
-            for index in jd_by_filter[filter]:
-                jd_fil.append(index)
+        mag = []
+        sigma = []
+        for point in flux_by_filter[filter]:
+            mag.append(zpavg - 2.5*math.log10(point))  # plotted as points; issue with taking negative flux
+            sigma.append(1.0857 * 1/point)  # error bars
+        idx = 0
+        for point in unc_by_filter[filter]:
+            sigma[idx] = sigma[idx]*point
+            idx += 1
 
-        plt.scatter(jd_fil, mag)
+        plt.scatter(jd_by_filter[filter], mag)
         # plt.errorbar(mag, jd_fil, yerr=sigma) 
         plt.show()
     else:
         # compute upper flux limits and plot as arrow
         for filter in unc_by_filter:
             mag = []
-            jd_fil = []
-            for index in unc_by_filter[filter]:
-                mag.append(zpavg - 2.5*math.log10(3*index))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-            for index in jd_by_filter[filter]:
-                jd_fil.append(index)
+            for point in unc_by_filter[filter]:
+                mag.append(zpavg - 2.5*math.log10(3*point))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
         # plot as arrow
 
 def main():
