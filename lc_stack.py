@@ -35,7 +35,11 @@ forcediffimflux_new = {}  # not used in these methods but may be passed to other
 flux_by_filter = {}  # {filter, list of flux}
 forcediffimfluxunc_new = {}  # not used in these methods but may be passed to other files
 unc_by_filter = {}  # {filter, list of unc}
-jd_by_filter = {}  # {filter, jd}; index of jd should match index of flux or unc in their dictionaries
+jd_by_filter = {}  # {filter, jd}; index of jd should match index of flux or unc in their dictionaries' keys
+
+# combined measurements as variables; updated by collapse_flux_by_filter() method - if filter is not measured, value will remain as 0
+combined_flux = {}
+combined_unc = {}
 
 
 def fill_vars():  # null value replacement with None may be unneccessary now
@@ -77,6 +81,11 @@ def validate_uncertainties():
     g_list = []
     r_list = []
     i_list = []
+
+    # placeholders
+    g_avg = 1
+    r_avg = 1
+    i_avg = 1
     
     for index in forceddiffimchisq: # sort chi squared by filter
         if forceddiffimchisq[index] != None:
@@ -90,9 +99,12 @@ def validate_uncertainties():
             elif filter[index] == 'ZTF_i':
                 i_list.append(new)
     
-    g_avg = sum(g_list) / len(g_list)
-    r_avg = sum(r_list) / len(r_list)
-    i_avg = sum(i_list) / len(i_list)
+    if len(g_list) != 0:
+        g_avg = sum(g_list) / len(g_list)
+    if len(r_list) != 0:
+        r_avg = sum(r_list) / len(r_list)
+    if len(i_list) != 0:
+        i_avg = sum(i_list) / len(i_list)
 
 # ensure pixel uncertainties are consistent
     if round(g_avg) != 1:
@@ -116,16 +128,18 @@ def rescale():  # start, end inclusive; need to add index out of bounds errors f
     g_unc_list = []  # list of rescaled uncertainties in the g band
     r_unc_list = []  # list of rescaled uncertainties in the r band
     i_unc_list = []  # list of rescaled uncertainties in the i band
+    
+    # matches jd to rescaled fluxes by filter for plotting
     g_jd = []
     r_jd = []
     i_jd = []
 
-    for index in forcediffimflux:  # check calculations
+    for index in forcediffimflux:  
         if forcediffimflux[index] != None and forcediffimfluxunc[index] != None:  # skips unusable data points
-            new = forcediffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))
-            forcediffimflux_new[index] = new  # place fluxes on the same photometric zeropoint, may be removable
+            new = forcediffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
+            forcediffimflux_new[index] = new
             
-            # sorts new flux by filter
+            # sorts new flux by filter and matches dictionary of jd to flux by filter by index
             if filter[index] == 'ZTF_g':
                 g_list.append(new)
                 g_jd.append(jd[index])
@@ -146,10 +160,10 @@ def rescale():  # start, end inclusive; need to add index out of bounds errors f
     jd_by_filter['ZTF_r'] = r_jd
     jd_by_filter['ZTF_i'] = i_jd
 
-    for index in forcediffimfluxunc:  # check calculations
+    for index in forcediffimfluxunc:
         if forcediffimfluxunc[index] != None and forcediffimflux[index] != None:  # skips unusable data points
-            new = forcediffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))
-            forcediffimfluxunc_new[index] = new  # place uncertainties on the same photometric zeropoint, may be removable
+            new = forcediffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
+            forcediffimfluxunc_new[index] = new
             # sorts new uncertainty by filter
             if filter[index] == 'ZTF_g':
                 g_unc_list.append(new)
@@ -165,7 +179,7 @@ def rescale():  # start, end inclusive; need to add index out of bounds errors f
     unc_by_filter['ZTF_i'] = i_unc_list
 
 
-def collapse_flux_by_filter():  # needs testing
+def collapse_flux_by_filter():
     """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average. Bin Separately by Filter"""
     for filter in flux_by_filter:
         flux = 0
@@ -181,8 +195,11 @@ def collapse_flux_by_filter():  # needs testing
         if w_tot != 0:
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
-            print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc))  # will need to convert these to variables
+            print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc)) 
             cal_mag(flux, flux_unc)
+        
+        combined_flux[filter] = flux
+        combined_unc[filter] = flux_unc
 
 
 def cal_mag(flux, flux_unc):  # will need to use the zpavg value assumed when rescaling the input fluxes
