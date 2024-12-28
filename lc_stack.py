@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-12-27
+Date: 2024-12-28
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -42,7 +42,7 @@ combined_flux = {}
 combined_unc = {}
 
 
-def fill_vars():  # null value replacement with None may be unneccessary now
+def fill_vars():
     "Takes a string of ascii data and converts it to dictionary variables."
     for line in data:
         line = line.strip()
@@ -119,8 +119,8 @@ def validate_uncertainties():
                 forcediffimfluxunc[index] = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
 
 
-def rescale():  # start, end inclusive; need to add index out of bounds errors for < first index in list, > last index in list
-    """Given lists of ascii data, make new columns for forcediffimfluxi and forcediffimfluxunci with rescaled input fluxes and uncertainties."""
+def rescale():  # start, end inclusive
+    """Make new columns for forcediffimfluxi and forcediffimfluxunci with rescaled input fluxes and uncertainties and sort new fluxes and uncertainties by filter."""
     zpavg =  min(zpdiff.values())  # flux / uncertainty ratio is consistent for any value; picking min for simplicity
     g_list = []  # list of rescaled fluxes in the g band
     r_list = []  # list of rescaled fluxes in the r band
