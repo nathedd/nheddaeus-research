@@ -14,6 +14,7 @@ Contact: nathedd@unc.edu
 import math
 import matplotlib.pyplot as plt
 
+
 # use of user inputs to select desired binning window
 file_name = str(input("Enter filename: "))
 start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates
@@ -224,17 +225,15 @@ def cal_mag(flux, flux_unc, filter):
         plt.xlabel('jd')
         plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
         plt.errorbar(jd_by_filter[filter], mag, yerr=sigma, ls='none')
-        plt.show()
     else:
         # compute upper flux limits and plot as arrow
         mag = []
-        for point in unc_by_filter[filter]:
-            if point < 0:
-                mag.append(-(zpavg-2.5*math.log10(-3*point)))  # negative flux cannot be plotted using log10
-        else:
-                mag.append(zpavg - 2.5*math.log10(3*point))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-        # plot as arrow
-
+        for point in unc_by_filter[filter]:    
+            mag.append(zpavg - 2.5*math.log10(3*point))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+        # plt.plot(jd_by_filter[filter], mag)
+        plt.quiver(jd_by_filter[filter], mag)  # plot as arrow
+    plt.show()
+    
 
 def main():
     fill_vars()
