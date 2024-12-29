@@ -210,7 +210,10 @@ def cal_mag(flux, flux_unc, filter):
         mag = []
         sigma = []
         for point in flux_by_filter[filter]:
-            mag.append(zpavg - 2.5*math.log10(point))  # plotted as points; issue with taking negative flux
+            if point < 0:
+                mag.append(-(zpavg-2.5*math.log10(-point)))
+            else:
+                mag.append(zpavg - 2.5*math.log10(point))  # plotted as points; issue with taking negative flux
             sigma.append(1.0857 * 1/point)  # error bars
         idx = 0
         for point in unc_by_filter[filter]:
