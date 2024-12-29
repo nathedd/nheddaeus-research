@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-12-28
+Date: 2024-12-29
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -211,25 +211,30 @@ def cal_mag(flux, flux_unc, filter):
         sigma = []
         for point in flux_by_filter[filter]:
             if point < 0:
-                mag.append(-(zpavg-2.5*math.log10(-point)))
+                mag.append(-(zpavg-2.5*math.log10(-point)))  # negative flux cannot be plotted using log10
             else:
-                mag.append(zpavg - 2.5*math.log10(point))  # plotted as points; issue with taking negative flux
-            sigma.append(1.0857 * 1/point)  # error bars
+                mag.append(zpavg - 2.5*math.log10(point))  # plotted as points
+            sigma.append(1.0857 * 1/abs(point))  # error bars, sigma cannot be negative
         idx = 0
         for point in unc_by_filter[filter]:
             sigma[idx] = sigma[idx]*point
             idx += 1
 
         plt.scatter(jd_by_filter[filter], mag)
-        # plt.errorbar(mag, jd_fil, yerr=sigma) 
+        plt.xlabel('jd')
+        plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
+        plt.errorbar(jd_by_filter[filter], mag, yerr=sigma, ls='none')
         plt.show()
     else:
         # compute upper flux limits and plot as arrow
-        for filter in unc_by_filter:
-            mag = []
-            for point in unc_by_filter[filter]:
+        mag = []
+        for point in unc_by_filter[filter]:
+            if point < 0:
+                mag.append(-(zpavg-2.5*math.log10(-3*point)))  # negative flux cannot be plotted using log10
+        else:
                 mag.append(zpavg - 2.5*math.log10(3*point))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
         # plot as arrow
+
 
 def main():
     fill_vars()
