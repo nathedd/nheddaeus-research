@@ -194,10 +194,10 @@ def collapse_flux_by_filter():
 def cal_mag(flux, flux_unc, filter):
     """Obtaining calibrated magnitudes (for transients)."""
     zpavg = min(zpdiff.values())
+    mag = 0
+    sigma = 0
     if ((flux / flux_unc) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
         # confident detection, plot magnitude with error bars
-        mag = 0
-        sigma = 0
         if flux < 0:
             mag = (-(zpavg-2.5*math.log10(-flux)))  # negative flux cannot be plotted using log10
         else:
@@ -207,7 +207,6 @@ def cal_mag(flux, flux_unc, filter):
         plt.errorbar((end-start)/2, mag, yerr=sigma, ls='none')
     else:
         # compute upper flux limits and plot as arrow
-        mag = 0
         mag = (zpavg - 2.5*math.log10(3*flux_unc))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
         plt.scatter((end-start)/2, mag, marker='v', c='red', label='Single upper-epoch limits')  # plot as arrow
     plt.xlabel('jd')
@@ -223,3 +222,6 @@ def main():
     validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
     rescale()
     collapse_flux_by_filter()
+
+
+main()
