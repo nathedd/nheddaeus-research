@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-12-29
+Date: 2024-12-30
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 
 # use of user inputs to select desired binning window
 file_name = str(input("Enter filename: "))
-start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates
-end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1
+start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates; note: if using a file that is not of ZTF format, indices on lines 20 and 21 of this code will need to be edited to match your file
+end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1; 
 baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
 
 with open(file_name) as f: # opens .txt file
@@ -38,13 +38,13 @@ forcediffimfluxunc_new = {}  # not used in these methods but may be passed to ot
 unc_by_filter = {}  # {filter, list of unc}
 jd_by_filter = {}  # {filter, jd}; index of jd should match index of flux or unc in their dictionaries' keys
 
-# combined measurements as variables; updated by collapse_flux_by_filter() method - if filter is not measured, value will remain as 0
+# combined measurements stored under dictionary variables that may be passed to other files; updated by collapse_flux_by_filter() method
 combined_flux = {}
 combined_unc = {}
 
 
 def fill_vars():
-    "Takes a string of ascii data and converts it to dictionary variables."
+    "Takes a string of ascii data and converts it to dictionary variables. Note: If file used is of a different format than ZTF file, column indices will need to be changed to match your file."
     for line in data:
         line = line.strip()
         columns = line.split()
@@ -71,8 +71,8 @@ def fill_vars():
 
 
 def correct_baseline():
+    """Following an estimate of the baseline level, subtract estimate from differential flux measurements."""
     for index in forcediffimflux:
-        """Following an estimate of the baseline level, subtract estimate from differential flux measurements."""
         if forcediffimflux[index] != None:
             forcediffimflux[index] = forcediffimflux[index] - baseline
 
@@ -110,14 +110,15 @@ def validate_uncertainties():
 # ensure pixel uncertainties are consistent
     if round(g_avg) != 1:
         for index in forcediffimfluxunc:
+            new = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
             if filter[index] == 'ZTF_g' and forcediffimfluxunc[index] != None:
-                forcediffimfluxunc[index] = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
+                forcediffimfluxunc[index] = new
     if round(r_avg) != 1:
         if filter[index] == 'ZTF_r' and forcediffimfluxunc[index] != None:
-                forcediffimfluxunc[index] = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
+                forcediffimfluxunc[index] = new
     if round(i_avg) != 1:
         if filter[index] == 'ZTF_i' and forcediffimfluxunc[index] != None:
-                forcediffimfluxunc[index] = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
+                forcediffimfluxunc[index] = new
 
 
 def rescale():  # start, end inclusive
@@ -230,8 +231,7 @@ def cal_mag(flux, flux_unc, filter):
         mag = []
         for point in unc_by_filter[filter]:    
             mag.append(zpavg - 2.5*math.log10(3*point))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-        # plt.plot(jd_by_filter[filter], mag)
-        plt.quiver(jd_by_filter[filter], mag)  # plot as arrow
+        plt.scatter(jd_by_filter[filter], mag, marker='v', c='red')  # plot as arrow
     plt.show()
     
 
@@ -239,7 +239,7 @@ def main():
     fill_vars()
     if baseline != 0:
         correct_baseline()
-    validate_uncertainties()
+    validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
     rescale()
     collapse_flux_by_filter()
 
