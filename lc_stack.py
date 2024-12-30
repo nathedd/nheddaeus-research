@@ -36,7 +36,6 @@ forcediffimflux_new = {}  # not used in these methods but may be passed to other
 flux_by_filter = {}  # {filter, list of flux}
 forcediffimfluxunc_new = {}  # not used in these methods but may be passed to other files
 unc_by_filter = {}  # {filter, list of unc}
-jd_by_filter = {}  # {filter, jd}; index of jd should match index of flux or unc in their dictionaries' keys
 
 # combined measurements stored under dictionary variables that may be passed to other files; updated by collapse_flux_by_filter() method
 combined_flux = {}
@@ -130,11 +129,6 @@ def rescale():  # start, end inclusive
     g_unc_list = []  # list of rescaled uncertainties in the g band
     r_unc_list = []  # list of rescaled uncertainties in the r band
     i_unc_list = []  # list of rescaled uncertainties in the i band
-    
-    # matches jd to rescaled fluxes by filter for plotting
-    g_jd = []
-    r_jd = []
-    i_jd = []
 
     for index in forcediffimflux:  
         if forcediffimflux[index] != None and forcediffimfluxunc[index] != None:  # skips unusable data points
@@ -144,23 +138,16 @@ def rescale():  # start, end inclusive
             # sorts new flux by filter and matches dictionary of jd to flux by filter by index
             if filter[index] == 'ZTF_g':
                 g_list.append(new)
-                g_jd.append(jd[index])
             
             elif filter[index] == 'ZTF_r':
                 r_list.append(new)
-                r_jd.append(jd[index])
             
             elif filter[index] == 'ZTF_i':
                 i_list.append(new)
-                i_jd.append(jd[index])
     
     flux_by_filter['ZTF_g'] = g_list
     flux_by_filter['ZTF_r'] = r_list
     flux_by_filter['ZTF_i'] = i_list
-
-    jd_by_filter['ZTF_g'] = g_jd
-    jd_by_filter['ZTF_r'] = r_jd
-    jd_by_filter['ZTF_i'] = i_jd
 
     for index in forcediffimfluxunc:
         if forcediffimfluxunc[index] != None and forcediffimflux[index] != None:  # skips unusable data points
@@ -216,7 +203,7 @@ def cal_mag(flux, flux_unc, filter):
         else:
             mag = (zpavg - 2.5*math.log10(flux))  # plotted as points
             sigma = 1.0857 * flux_unc / flux
-        plt.scatter((end-start)/2, mag, label='Magnitude')
+        plt.scatter((end-start)/2, mag, label='Magnitude', c='blue')
         plt.errorbar((end-start)/2, mag, yerr=sigma, ls='none')
     else:
         # compute upper flux limits and plot as arrow
@@ -236,5 +223,3 @@ def main():
     validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
     rescale()
     collapse_flux_by_filter()
-
-main()
