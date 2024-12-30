@@ -209,29 +209,23 @@ def cal_mag(flux, flux_unc, filter):
     zpavg = min(zpdiff.values())
     if ((flux / flux_unc) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
         # confident detection, plot magnitude with error bars
-        mag = []
-        sigma = []
-        for point in flux_by_filter[filter]:
-            if point < 0:
-                mag.append(-(zpavg-2.5*math.log10(-point)))  # negative flux cannot be plotted using log10
-            else:
-                mag.append(zpavg - 2.5*math.log10(point))  # plotted as points
-            sigma.append(1.0857 * 1/abs(point))  # error bars, sigma cannot be negative
-        idx = 0
-        for point in unc_by_filter[filter]:
-            sigma[idx] = sigma[idx]*point
-            idx += 1
-
-        plt.scatter(jd_by_filter[filter], mag)
+        mag = 0
+        sigma = 0
+        if flux < 0:
+            mag = (-(zpavg-2.5*math.log10(-flux)))  # negative flux cannot be plotted using log10
+        else:
+            mag = (zpavg - 2.5*math.log10(flux))  # plotted as points
+        plt.scatter((end-start)/2, mag)
         plt.xlabel('jd')
         plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
-        plt.errorbar(jd_by_filter[filter], mag, yerr=sigma, ls='none')
+        plt.errorbar(end-start, mag, yerr=sigma, ls='none')
     else:
         # compute upper flux limits and plot as arrow
-        mag = []
-        for point in unc_by_filter[filter]:    
-            mag.append(zpavg - 2.5*math.log10(3*point))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-        plt.scatter(jd_by_filter[filter], mag, marker='v', c='red')  # plot as arrow
+        mag = 0
+        mag = (zpavg - 2.5*math.log10(3*flux_unc))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+        plt.scatter((end-start)/2, mag, marker='v', c='red')  # plot as arrow
+        plt.xlabel('jd')
+        plt.ylabel('single upper-epoch limits in '+ str(filter)[0:len(str(filter))])
     plt.show()
     
 
