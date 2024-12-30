@@ -215,17 +215,17 @@ def cal_mag(flux, flux_unc, filter):
             mag = (-(zpavg-2.5*math.log10(-flux)))  # negative flux cannot be plotted using log10
         else:
             mag = (zpavg - 2.5*math.log10(flux))  # plotted as points
-        plt.scatter((end-start)/2, mag)
-        plt.xlabel('jd')
-        plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
-        plt.errorbar(end-start, mag, yerr=sigma, ls='none')
+            sigma = 1.0857 * flux_unc / flux
+        plt.scatter((end-start)/2, mag, label='Magnitude')
+        plt.errorbar((end-start)/2, mag, yerr=sigma, ls='none')
     else:
         # compute upper flux limits and plot as arrow
         mag = 0
         mag = (zpavg - 2.5*math.log10(3*flux_unc))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-        plt.scatter((end-start)/2, mag, marker='v', c='red')  # plot as arrow
-        plt.xlabel('jd')
-        plt.ylabel('single upper-epoch limits in '+ str(filter)[0:len(str(filter))])
+        plt.scatter((end-start)/2, mag, marker='v', c='red', label='Single upper-epoch limits')  # plot as arrow
+    plt.xlabel('jd')
+    plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
+    plt.legend(loc = 'upper left')
     plt.show()
     
 
