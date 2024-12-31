@@ -15,15 +15,6 @@ import math
 import matplotlib.pyplot as plt
 
 
-# use of user inputs to select desired binning window
-file_name = str(input("Enter filename: "))
-start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates; note: if using a file that is not of ZTF format, indices on lines 20 and 21 of this code will need to be edited to match your file
-end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1; 
-baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
-
-with open(file_name) as f: # opens .txt file
-    data = f.readlines()[start: end]
-
 # storing variable data as dictionaries: key = index, value = column of file_name
 jd = {}  # julian day; not used in these methods but may be passed to other files
 forcediffimflux = {}
@@ -37,12 +28,10 @@ flux_by_filter = {}  # {filter, list of flux}
 forcediffimfluxunc_new = {}  # not used in these methods but may be passed to other files
 unc_by_filter = {}  # {filter, list of unc}
 
-# combined measurements stored under dictionary variables that may be passed to other files; updated by collapse_flux_by_filter() method
-combined_flux = {}
-combined_unc = {}
+combined_meas = {}  # {filter, [flux, unc, jd start, jd end]}
 
 
-def fill_vars():
+def fill_vars(data):
     "Takes a string of ascii data and converts it to dictionary variables. Note: If file used is of a different format than ZTF file, column indices will need to be changed to match your file."
     for line in data:
         line = line.strip()
@@ -168,7 +157,7 @@ def rescale():  # start, end inclusive
     unc_by_filter['ZTF_i'] = i_unc_list
 
 
-def collapse_flux_by_filter():
+def collapse_flux_by_filter(start, end):
     """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average. Bin Separately by Filter"""
     for filter in flux_by_filter:
         flux = 0
@@ -185,30 +174,32 @@ def collapse_flux_by_filter():
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
             print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc)) 
-            cal_mag(flux, flux_unc, filter)
+            # cal_mag(flux, flux_unc, filter)
         
-        combined_flux[filter] = flux
-        combined_unc[filter] = flux_unc
+        combined_meas[filter] = [flux, flux_unc, jd[start - 57], jd[end - 58]]  # if not using a ZTF file, have these match the indices used in jd dictionary
 
 
-def cal_mag(flux, flux_unc, filter):
-    """Obtaining calibrated magnitudes (for transients)."""
+def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
+    """Obtaining calibrated magnitudes (for transients). Run in main.py file."""
     zpavg = min(zpdiff.values())
     mag = 0
     sigma = 0
-    if ((flux / flux_unc) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
-        # confident detection, plot magnitude with error bars
-        if flux < 0:
-            mag = (-(zpavg-2.5*math.log10(-flux)))  # negative flux cannot be plotted using log10
+    i = 0
+    while (i < len(flux)):
+        if ((flux[i] / flux_unc[i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
+            # confident detection, plot magnitude with error bars
+            if flux[i] < 0:
+                mag = (-(zpavg-2.5*math.log10(-flux[i])))  # negative flux cannot be plotted using log10
+            else:
+                mag = (zpavg - 2.5*math.log10(flux[i]))  # plotted as points
+                sigma = 1.0857 * flux_unc[i] / flux[i]
+            plt.scatter((jd_end[i]+jd_start[i])/2, mag, label='Magnitude', c='blue')
+            plt.errorbar((jd_end[i]+jd_start[i])/2, mag, yerr=sigma, ls='none', c='blue')
         else:
-            mag = (zpavg - 2.5*math.log10(flux))  # plotted as points
-            sigma = 1.0857 * flux_unc / flux
-        plt.scatter(jd[round((end+start)/2)], mag, label='Magnitude', c='blue')
-        plt.errorbar(jd[round((end+start)/2)], mag, yerr=sigma, ls='none')
-    else:
-        # compute upper flux limits and plot as arrow
-        mag = (zpavg - 2.5*math.log10(3*flux_unc))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-        plt.scatter(jd[round((end+start)/2)], mag, marker='v', c='red', label='Single upper-epoch limits')  # plot as arrow
+            # compute upper flux limits and plot as arrow
+            mag = (zpavg - 2.5*math.log10(3*flux_unc[i]))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+            plt.scatter((jd_end[i]+jd_start[i])/2, mag, marker='v', c='red', label='Single upper-epoch limits')  # plot as arrow
+        i += 1
     plt.xlabel('jd')
     plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
     plt.legend(loc = 'upper left')
@@ -216,12 +207,22 @@ def cal_mag(flux, flux_unc, filter):
     
 
 def main():
-    fill_vars()
+    # use of user inputs to select desired binning window
+    file_name = str(input("Enter filename: "))
+    start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates; note: if using a file that is not of ZTF format, indices on lines 20 and 21 of this code will need to be edited to match your file
+    end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1; 
+    baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
+
+    with open(file_name) as f: # opens .txt file
+        data = f.readlines()[start: end]
+    fill_vars(data)
     if baseline != 0:
         correct_baseline()
     validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
     rescale()
-    collapse_flux_by_filter()
+    collapse_flux_by_filter(start, end)
 
 
-main()
+if __name__ == '__main__':  # invoke python main.py to run
+    main()
+    
