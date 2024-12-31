@@ -174,7 +174,6 @@ def collapse_flux_by_filter(start, end):
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
             print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc)) 
-            # cal_mag(flux, flux_unc, filter)
         
         combined_meas[filter] = [flux, flux_unc, jd[start - 57], jd[end - 58]]  # if not using a ZTF file, have these match the indices used in jd dictionary
 

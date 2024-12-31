@@ -1,5 +1,5 @@
 """
-Filename: cal_mag.py
+Filename: main.py
 Author: Nat Heddaeus
 Date: 2024-12-30
 Version: 1.0
