@@ -177,7 +177,7 @@ def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
         i += 1
     plt.xlabel('jd')
     plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
-    plt.legend(loc = 'upper left')
+    # plt.legend(loc = 'upper left')
     plt.show()
     
 
