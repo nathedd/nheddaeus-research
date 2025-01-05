@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-12-31
+Date: 2024-01-05
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
