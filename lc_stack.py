@@ -28,7 +28,11 @@ flux_by_filter = {}  # {filter, list of flux}
 forcediffimfluxunc_new = {}  # not used in these methods but may be passed to other files
 unc_by_filter = {}  # {filter, list of unc}
 
-combined_meas = {}  # {filter, [flux, unc, jd start, jd end]}
+# used for plotting
+combined_flux = {}
+combined_unc = {}
+combined_start = {}
+combined_end = {}
 
 windows = {}  # for helper function get_indices
 
@@ -91,7 +95,7 @@ def validate_uncertainties():
                 forcediffimfluxunc[index] = new
 
 
-def rescale():  # start, end inclusive
+def rescale(start, end):  # start, end inclusive
     """Make new columns for forcediffimfluxi and forcediffimfluxunci with rescaled input fluxes and uncertainties and sort new fluxes and uncertainties by filter."""
     zpavg =  min(zpdiff.values())  # flux / uncertainty ratio is consistent for any value; picking min for simplicity
     g_list = []  # list of rescaled fluxes in the g band
@@ -100,29 +104,29 @@ def rescale():  # start, end inclusive
     g_unc_list = []  # list of rescaled uncertainties in the g band
     r_unc_list = []  # list of rescaled uncertainties in the r band
     i_unc_list = []  # list of rescaled uncertainties in the i band
-    for index in forcediffimflux:  
-        new = forcediffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
-        forcediffimflux_new[index] = new
-        # sorts new flux by filter and matches dictionary of jd to flux by filter by index
-        if filter[index] == 'ZTF_g':
-            g_list.append(new)
-        elif filter[index] == 'ZTF_r':
-            r_list.append(new)
-        elif filter[index] == 'ZTF_i':
-            i_list.append(new)
+    for index in range(start, end+1): 
+        if index in forcediffimflux:
+            new = forcediffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
+            forcediffimflux_new[index] = new
+            # sorts new flux by filter and matches dictionary of jd to flux by filter by index
+            if filter[index] == 'ZTF_g':
+                g_list.append(new)
+            elif filter[index] == 'ZTF_r':
+                r_list.append(new)
+            elif filter[index] == 'ZTF_i':
+                i_list.append(new)
+            new = forcediffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
+            forcediffimfluxunc_new[index] = new
+            # sorts new uncertainty by filter
+            if filter[index] == 'ZTF_g':
+                g_unc_list.append(new)
+            elif filter[index] == 'ZTF_r':
+                r_unc_list.append(new)
+            elif filter[index] == 'ZTF_i':
+                i_unc_list.append(new)
     flux_by_filter['ZTF_g'] = g_list
     flux_by_filter['ZTF_r'] = r_list
     flux_by_filter['ZTF_i'] = i_list
-    for index in forcediffimfluxunc:
-        new = forcediffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
-        forcediffimfluxunc_new[index] = new
-        # sorts new uncertainty by filter
-        if filter[index] == 'ZTF_g':
-            g_unc_list.append(new)
-        elif filter[index] == 'ZTF_r':
-            r_unc_list.append(new)
-        elif filter[index] == 'ZTF_i':
-            i_unc_list.append(new)
     unc_by_filter['ZTF_g'] = g_unc_list
     unc_by_filter['ZTF_r'] = r_unc_list
     unc_by_filter['ZTF_i'] = i_unc_list
@@ -132,6 +136,7 @@ def collapse_flux_by_filter(start, end):
     """Assuming that underlying source is stationary within time window, collapse rescaled single-epoch fluxes using an inverse-variance weighted average. Bin Separately by Filter"""
     for filter in flux_by_filter:
         flux = 0
+        flux_unc = 0
         w_tot = 0
         idx = 0
         for point in flux_by_filter[filter]:
@@ -142,8 +147,17 @@ def collapse_flux_by_filter(start, end):
         if w_tot != 0:
             flux = flux / w_tot
             flux_unc = w_tot**(-1/2) 
-            print(filter + ' flux: ' + str(flux) + ' flux_unc: ' + str(flux_unc)) 
-        combined_meas[filter] = [flux, flux_unc, jd[start - 57], jd[end - 58]]  # if not using a ZTF file, have these match the indices used in jd dictionary
+        if len(flux_by_filter[filter]) != 0: 
+            if filter in combined_flux:
+                combined_flux[filter].append(flux)
+                combined_unc[filter].append(flux_unc)
+                combined_start[filter].append(jd[start])
+                combined_end[filter].append(jd[end])
+            else:
+                combined_flux[filter] = [flux]
+                combined_unc[filter] = [flux_unc]
+                combined_start[filter] = [jd[start]]
+                combined_end[filter] = [jd[end]]
 
 
 def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
@@ -156,9 +170,9 @@ def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
         if ((flux[i] / flux_unc[i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
             # confident detection, plot magnitude with error bars
             if flux[i] < 0:
-                mag = (-(zpavg-2.5*math.log10(-flux[i])))  # negative flux cannot be plotted using log10
+                mag = (zpavg-2.5*math.log10(-flux[i]))  # negative flux cannot be plotted using log10
             else:
-                mag = (zpavg - 2.5*math.log10(flux[i]))  # plotted as points
+                mag = -(zpavg - 2.5*math.log10(flux[i]))  # plotted as points
                 sigma = 1.0857 * flux_unc[i] / flux[i]
             plt.scatter((jd_end[i]+jd_start[i])/2, mag, label='Magnitude', c='blue')
             plt.errorbar((jd_end[i]+jd_start[i])/2, mag, yerr=sigma, ls='none', c='blue')
@@ -177,9 +191,8 @@ def get_indices(start, i):
     """Creates a dictionary of indices {start, end} by day."""
     end = start
     if i >= len(jd):
-        print(windows)
         return None
-    while int(jd[i] % 10) == int(jd[i+1] % 10):
+    while (i in jd and i+1 in jd) and (int(jd[i] % 10) == int(jd[i+1] % 10)):
         end = i+1
         i += 1
         if i == len(jd) - 1:
@@ -191,7 +204,7 @@ def get_indices(start, i):
 def main():
     # use of user inputs to select desired binning window
     file_name = str(input("Enter filename: "))
-    start = 57 + int(input("Enter starting index (Index will be found in column one of your ascii file, in the rows that do not start with '#'): "))  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates; note: if using a file that is not of ZTF format, indices on lines 20 and 21 of this code will need to be edited to match your file
+    start = 57  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates; note: if using a file that is not of ZTF format, indices on lines 20 and 21 of this code will need to be edited to match your file
     end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1; 
     baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
     with open(file_name) as f: # opens .txt file
@@ -201,9 +214,13 @@ def main():
     if baseline != 0:
         correct_baseline()
     validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
-    rescale()
-    collapse_flux_by_filter(start, end)
-
+    get_indices(0, 0)
+    for start in windows:
+        rescale(start, windows[start])
+        collapse_flux_by_filter(start, windows[start])
+    cal_mag(combined_flux['ZTF_g'], combined_unc['ZTF_g'], 'ZTF_g', combined_start['ZTF_g'], combined_end['ZTF_g'])
+    cal_mag(combined_flux['ZTF_r'], combined_unc['ZTF_r'], 'ZTF_r', combined_start['ZTF_r'], combined_end['ZTF_r'])
+    cal_mag(combined_flux['ZTF_i'], combined_unc['ZTF_i'], 'ZTF_i', combined_start['ZTF_i'], combined_end['ZTF_i'])
 
 if __name__ == '__main__':  # invoke python main.py to run
     main()   
