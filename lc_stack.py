@@ -13,6 +13,7 @@ Contact: nathedd@unc.edu
 
 import math
 import matplotlib.pyplot as plt
+import sys
 
 # storing variable data as dictionaries: key = index, value = column of file_name
 jd = {}  # julian day; not used in these methods but may be passed to other files
@@ -28,6 +29,8 @@ forcediffimfluxunc_new = {}  # not used in these methods but may be passed to ot
 unc_by_filter = {}  # {filter, list of unc}
 
 combined_meas = {}  # {filter, [flux, unc, jd start, jd end]}
+
+windows = {}  # for helper function get_indices
 
 
 def fill_vars(data):
@@ -179,6 +182,21 @@ def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
     plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
     # plt.legend(loc = 'upper left')
     plt.show()
+
+
+def get_indices(start, i):
+    """Creates a dictionary of indices {start, end} by day."""
+    end = start
+    if i >= len(jd):
+        print(windows)
+        return None
+    while int(jd[i] % 10) == int(jd[i+1] % 10):
+        end = i+1
+        i += 1
+        if i == len(jd) - 1:
+            break
+    windows[start] = end
+    get_indices(end + 1, i+1)
     
 
 def main():
@@ -189,6 +207,7 @@ def main():
     baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
     with open(file_name) as f: # opens .txt file
         data = f.readlines()[start: end]
+    sys.setrecursionlimit(len(data))
     fill_vars(data)
     if baseline != 0:
         correct_baseline()
