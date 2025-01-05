@@ -38,28 +38,20 @@ def fill_vars(data):
     for line in data:
         line = line.strip()
         columns = line.split()
-        jd[int(columns[0])] = (float(columns[22]))  # creates dictionary of {index, julian day}
-        if (columns[24] != 'null'): 
+        if (columns[24] != 'null' and columns[25] != 'null'): 
             forcediffimflux[int(columns[0])] = (float(columns[24]))  # creates dictionary of {index, flux}
-        else:
-            forcediffimflux[int(columns[0])] = (None)  # catches unusable data points; fills with None for consistency between variables 
-        if (columns[25] != 'null'): 
             forcediffimfluxunc[int(columns[0])] = (float(columns[25]))  # creates dictionary of {index, flux uncertainty}
-        else:
-            forcediffimflux[int(columns[0])] = (None)  # catches unusable data points; fills with None for consistency between variables
+            zpdiff[int(columns[0])] = (float(columns[20]))  # creates dictionary of {index, zero points}
+            filter[int(columns[0])] = (columns[4])  # creates dictionary of {index, filter}
+            jd[int(columns[0])] = (float(columns[22]))  # creates dictionary of {index, julian day}
         if (columns[27] != 'null'):
             forceddiffimchisq[int(columns[0])] = (float(columns[27]))  # creates dictionary of {index, chi^2}
-        else:
-            forceddiffimchisq[int(columns[0])] = (None)  # catches unusable data points; fills with None for consistency between variables
-        zpdiff[int(columns[0])] = (float(columns[20]))  # creates dictionary of {index, zero points}
-        filter[int(columns[0])] = (columns[4])  # creates dictionary of {index, filter}
 
 
 def correct_baseline():
     """Following an estimate of the baseline level, subtract estimate from differential flux measurements."""
     for index in forcediffimflux:
-        if forcediffimflux[index] != None:
-            forcediffimflux[index] = forcediffimflux[index] - baseline
+        forcediffimflux[index] = forcediffimflux[index] - baseline
 
 
 def validate_uncertainties():
@@ -72,14 +64,13 @@ def validate_uncertainties():
     r_avg = 1
     i_avg = 1
     for index in forceddiffimchisq: # sort chi squared by filter
-        if forceddiffimchisq[index] != None:
-            new = forceddiffimchisq[index]
-            if filter[index] == 'ZTF_g':
-                g_list.append(new)
-            elif filter[index] == 'ZTF_r':
-                r_list.append(new)
-            elif filter[index] == 'ZTF_i':
-                i_list.append(new)
+        new = forceddiffimchisq[index]
+        if filter[index] == 'ZTF_g':
+            g_list.append(new)
+        elif filter[index] == 'ZTF_r':
+            r_list.append(new)
+        elif filter[index] == 'ZTF_i':
+            i_list.append(new)
     if len(g_list) != 0:
         g_avg = sum(g_list) / len(g_list)
     if len(r_list) != 0:
@@ -90,13 +81,13 @@ def validate_uncertainties():
     if round(g_avg) != 1:
         for index in forcediffimfluxunc:
             new = forcediffimfluxunc[index] * math.sqrt(forceddiffimchisq[index])
-            if filter[index] == 'ZTF_g' and forcediffimfluxunc[index] != None:
+            if filter[index] == 'ZTF_g':
                 forcediffimfluxunc[index] = new
     if round(r_avg) != 1:
-        if filter[index] == 'ZTF_r' and forcediffimfluxunc[index] != None:
+        if filter[index] == 'ZTF_r':
                 forcediffimfluxunc[index] = new
     if round(i_avg) != 1:
-        if filter[index] == 'ZTF_i' and forcediffimfluxunc[index] != None:
+        if filter[index] == 'ZTF_i':
                 forcediffimfluxunc[index] = new
 
 
@@ -110,30 +101,28 @@ def rescale():  # start, end inclusive
     r_unc_list = []  # list of rescaled uncertainties in the r band
     i_unc_list = []  # list of rescaled uncertainties in the i band
     for index in forcediffimflux:  
-        if forcediffimflux[index] != None and forcediffimfluxunc[index] != None:  # skips unusable data points
-            new = forcediffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
-            forcediffimflux_new[index] = new
-            # sorts new flux by filter and matches dictionary of jd to flux by filter by index
-            if filter[index] == 'ZTF_g':
-                g_list.append(new)
-            elif filter[index] == 'ZTF_r':
-                r_list.append(new)
-            elif filter[index] == 'ZTF_i':
-                i_list.append(new)
+        new = forcediffimflux[index]*10**(0.4*(zpavg-zpdiff[index]))  # place fluxes on the same photometric zeropoint
+        forcediffimflux_new[index] = new
+        # sorts new flux by filter and matches dictionary of jd to flux by filter by index
+        if filter[index] == 'ZTF_g':
+            g_list.append(new)
+        elif filter[index] == 'ZTF_r':
+            r_list.append(new)
+        elif filter[index] == 'ZTF_i':
+            i_list.append(new)
     flux_by_filter['ZTF_g'] = g_list
     flux_by_filter['ZTF_r'] = r_list
     flux_by_filter['ZTF_i'] = i_list
     for index in forcediffimfluxunc:
-        if forcediffimfluxunc[index] != None and forcediffimflux[index] != None:  # skips unusable data points
-            new = forcediffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
-            forcediffimfluxunc_new[index] = new
-            # sorts new uncertainty by filter
-            if filter[index] == 'ZTF_g':
-                g_unc_list.append(new)
-            elif filter[index] == 'ZTF_r':
-                r_unc_list.append(new)
-            elif filter[index] == 'ZTF_i':
-                i_unc_list.append(new)
+        new = forcediffimfluxunc[index]*10**(0.4*(zpavg-zpdiff[index]))  # place uncertainties on the same photometric zeropoint
+        forcediffimfluxunc_new[index] = new
+        # sorts new uncertainty by filter
+        if filter[index] == 'ZTF_g':
+            g_unc_list.append(new)
+        elif filter[index] == 'ZTF_r':
+            r_unc_list.append(new)
+        elif filter[index] == 'ZTF_i':
+            i_unc_list.append(new)
     unc_by_filter['ZTF_g'] = g_unc_list
     unc_by_filter['ZTF_r'] = r_unc_list
     unc_by_filter['ZTF_i'] = i_unc_list
