@@ -161,7 +161,7 @@ def collapse_flux_by_filter(start, end):
 
 
 def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
-    """Obtaining calibrated magnitudes (for transients). Run in main.py file."""
+    """Obtaining calibrated magnitudes (for transients)."""
     zpavg = min(zpdiff.values())
     mag = 0
     sigma = 0
@@ -208,7 +208,7 @@ def main():
     start = 57  # starting line 57 appears to be consistent across ZTF files, but may need to be changed in future updates; note: if using a file that is not of ZTF format, indices on lines 20 and 21 of this code will need to be edited to match your file
     end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1; 
     baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
-    num_days = int(input("Enter the number of days to be binned at a time: "))
+    num_days = float(input("Enter the number of days to be binned at a time: "))
     with open(file_name) as f: # opens .txt file
         data = f.readlines()[start: end]
     sys.setrecursionlimit(len(data))
