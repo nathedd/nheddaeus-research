@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-01-05
+Date: 2024-01-06
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -170,9 +170,9 @@ def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
         if ((flux[i] / flux_unc[i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
             # confident detection, plot magnitude with error bars
             if flux[i] < 0:
-                mag = (zpavg-2.5*math.log10(-flux[i]))  # negative flux cannot be plotted using log10
+                mag = -(zpavg-2.5*math.log10(-flux[i]))  # negative flux cannot be plotted using log10
             else:
-                mag = -(zpavg - 2.5*math.log10(flux[i]))  # plotted as points
+                mag = (zpavg - 2.5*math.log10(flux[i]))  # plotted as points
                 sigma = 1.0857 * flux_unc[i] / flux[i]
             plt.scatter((jd_end[i]+jd_start[i])/2, mag, label='Magnitude', c='blue')
             plt.errorbar((jd_end[i]+jd_start[i])/2, mag, yerr=sigma, ls='none', c='blue')
@@ -184,6 +184,7 @@ def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
     plt.xlabel('jd')
     plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
     # plt.legend(loc = 'upper left')
+    plt.gca().invert_yaxis()
     plt.show()
 
 
@@ -192,17 +193,11 @@ def get_indices(start, i, num_days):
     end = start
     if i >= len(jd):
         return None
-    while (start in jd and i+1 in jd) and ((int(jd[start] % 10) == int(jd[i+1] % 10))):  # works for one day
+    while (start in jd and i+1 in jd) and ((int(jd[start] % 10000000 + num_days - 1) >= int(jd[i+1] % 10000000))):
         end = i+1
         i += 1
         if i == len(jd) - 1:
             break
-    if num_days > 1:
-        while (start in jd and i+1 in jd) and ((int(jd[start] % 10) == int(jd[i+1] % 10) - num_days + 1)):  # works for two days
-            end = i+1
-            i += 1
-            if i == len(jd) - 1:
-                break
     windows[start] = end
     get_indices(end + 1, i+1, num_days)
     
