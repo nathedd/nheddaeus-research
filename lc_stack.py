@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-01-06
+Date: 2024-01-09
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -160,30 +160,43 @@ def collapse_flux_by_filter(start, end):
                 combined_end[filter] = [jd[end]]
 
 
-def cal_mag(flux, flux_unc, filter, jd_start, jd_end):
+def cal_mag(flux, flux_unc, jd_start, jd_end):
     """Obtaining calibrated magnitudes (for transients)."""
     zpavg = min(zpdiff.values())
     mag = 0
     sigma = 0
-    i = 0
-    while (i < len(flux)):
-        if ((flux[i] / flux_unc[i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
-            # confident detection, plot magnitude with error bars
-            if flux[i] < 0:
-                mag = -(zpavg-2.5*math.log10(-flux[i]))  # negative flux cannot be plotted using log10
+    for filter in flux:
+        i = 0
+        while (i < len(flux[filter])):
+            if ((flux[filter][i] / flux_unc[filter][i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
+                # confident detection, plot magnitude with error bars
+                if flux[filter][i] < 0:
+                    mag = -(zpavg-2.5*math.log10(-flux[filter][i]))  # negative flux cannot be plotted using log10
+                else:
+                    mag = (zpavg - 2.5*math.log10(flux[filter][i]))  # plotted as points
+                    sigma = 1.0857 * flux_unc[filter][i] / flux[filter][i]
+                if filter == 'ZTF_g':
+                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_g', c='blue')
+                    plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='blue')
+                elif filter == 'ZTF_r':
+                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_r', c='red')
+                    plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='red')
+                else:  # ZTF_i
+                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_i', c='green')
+                    plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='green')
             else:
-                mag = (zpavg - 2.5*math.log10(flux[i]))  # plotted as points
-                sigma = 1.0857 * flux_unc[i] / flux[i]
-            plt.scatter((jd_end[i]+jd_start[i])/2, mag, label='Magnitude', c='blue')
-            plt.errorbar((jd_end[i]+jd_start[i])/2, mag, yerr=sigma, ls='none', c='blue')
-        else:
-            # compute upper flux limits and plot as arrow
-            mag = (zpavg - 2.5*math.log10(3*flux_unc[i]))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-            plt.scatter((jd_end[i]+jd_start[i])/2, mag, marker='v', c='red', label='Single upper-epoch limits')  # plot as arrow
-        i += 1
+                # compute upper flux limits and plot as arrow
+                mag = (zpavg - 2.5*math.log10(3*flux_unc[filter][i]))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+                if filter == 'ZTF_g':
+                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='blue', label='Single upper-epoch limits')  # plot as arrow
+                elif filter == "ZTF_r":
+                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='red', label='Single upper-epoch limits')
+                else:  # ZTF_i
+                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='green', label='Single upper-epoch limits')
+            i += 1
     plt.xlabel('jd')
-    plt.ylabel('magnitude in '+ str(filter)[0:len(str(filter))])
-    # plt.legend(loc = 'upper left')
+    plt.ylabel('magnitude')
+    # plt.legend(['ZTF_g', 'ZTF_r', 'ZTF_i'], loc = 'upper left')
     plt.gca().invert_yaxis()
     plt.show()
 
@@ -220,9 +233,6 @@ def main():
     for start in windows:
         rescale(start, windows[start])
         collapse_flux_by_filter(start, windows[start])
-    cal_mag(combined_flux['ZTF_g'], combined_unc['ZTF_g'], 'ZTF_g', combined_start['ZTF_g'], combined_end['ZTF_g'])
-    cal_mag(combined_flux['ZTF_r'], combined_unc['ZTF_r'], 'ZTF_r', combined_start['ZTF_r'], combined_end['ZTF_r'])
-    cal_mag(combined_flux['ZTF_i'], combined_unc['ZTF_i'], 'ZTF_i', combined_start['ZTF_i'], combined_end['ZTF_i'])
-
+    cal_mag(combined_flux, combined_unc, combined_start, combined_end)
 if __name__ == '__main__':  # invoke python main.py to run
     main()   
