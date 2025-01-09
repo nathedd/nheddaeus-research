@@ -196,6 +196,7 @@ def cal_mag(flux, flux_unc, jd_start, jd_end):
             i += 1
     plt.xlabel('jd')
     plt.ylabel('magnitude')
+    #plt.title(str("RA:" + ra + ", DEC: " + dec))
     # plt.legend(['ZTF_g', 'ZTF_r', 'ZTF_i'], loc = 'upper left')
     plt.gca().invert_yaxis()
     plt.show()
@@ -226,6 +227,7 @@ def main():
         data = f.readlines()[start: end]
     sys.setrecursionlimit(len(data))
     fill_vars(data)
+    f.close()
     if baseline != 0:
         correct_baseline()
     validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
