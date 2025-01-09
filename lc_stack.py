@@ -206,7 +206,7 @@ def get_indices(start, i, num_days):
     end = start
     if i >= len(jd):
         return None
-    while (start in jd and i+1 in jd) and ((int(jd[start] % 10000000 + num_days - 1) >= int(jd[i+1] % 10000000))):
+    while ((start in jd and i+1 in jd) and (round(jd[start] + num_days, 7) >= round(jd[i+1], 7))):
         end = i+1
         i += 1
         if i == len(jd) - 1:
@@ -234,5 +234,6 @@ def main():
         rescale(start, windows[start])
         collapse_flux_by_filter(start, windows[start])
     cal_mag(combined_flux, combined_unc, combined_start, combined_end)
+    
 if __name__ == '__main__':  # invoke python main.py to run
     main()   
