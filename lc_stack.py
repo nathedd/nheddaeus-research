@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-01-09
+Date: 2024-01-13
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -160,7 +160,7 @@ def collapse_flux_by_filter(start, end):
                 combined_end[filter] = [jd[end]]
 
 
-def cal_mag(flux, flux_unc, jd_start, jd_end):
+def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days):
     """Obtaining calibrated magnitudes (for transients)."""
     zpavg = min(zpdiff.values())
     mag = 0
@@ -196,8 +196,7 @@ def cal_mag(flux, flux_unc, jd_start, jd_end):
             i += 1
     plt.xlabel('jd')
     plt.ylabel('magnitude')
-    #plt.title(str("RA:" + ra + ", DEC: " + dec))
-    # plt.legend(['ZTF_g', 'ZTF_r', 'ZTF_i'], loc = 'upper left')
+    plt.title("RA: " + ra + "\nDEC: " + dec + "\nDays Binned: " + str(num_days))  # will add title 
     plt.gca().invert_yaxis()
     plt.show()
 
@@ -228,6 +227,14 @@ def main():
     sys.setrecursionlimit(len(data))
     fill_vars(data)
     f.close()
+    with open(file_name) as f:
+        data = f.readlines()[3:4]
+        for line in data:
+            ra = str(line.strip())[25:]
+    f.close()
+    with open(file_name) as f:
+        for line in data:
+            dec = str(line.strip())[25:]
     if baseline != 0:
         correct_baseline()
     validate_uncertainties()  # if file used is already uncertainty validated, you may remove this call
@@ -235,7 +242,7 @@ def main():
     for start in windows:
         rescale(start, windows[start])
         collapse_flux_by_filter(start, windows[start])
-    cal_mag(combined_flux, combined_unc, combined_start, combined_end)
+    cal_mag(combined_flux, combined_unc, combined_start, combined_end, ra, dec, num_days)
     
 if __name__ == '__main__':  # invoke python main.py to run
     main()   
