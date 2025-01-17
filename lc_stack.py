@@ -4,7 +4,7 @@
 """
 Filename: lc_stack.py
 Author: Nat Heddaeus
-Date: 2024-01-13
+Date: 2024-01-17
 Version: 1.0
 Description: Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022.
 
@@ -197,6 +197,10 @@ def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days):
     plt.xlabel('jd')
     plt.ylabel('magnitude')
     plt.title("RA: " + ra + "\nDEC: " + dec + "\nDays Binned: " + str(num_days))  # will add title 
+    plt.legend(labels=['ZTF_g', 'ZTF_r', 'ZTF_i'])
+    leg = plt.gca().get_legend()
+    leg.legend_handles[1].set_color('red')
+    leg.legend_handles[2].set_color('green')
     plt.gca().invert_yaxis()
     plt.show()
 
