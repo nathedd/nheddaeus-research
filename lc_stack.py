@@ -14,6 +14,7 @@ Contact: nathedd@unc.edu
 import math
 import matplotlib.pyplot as plt
 import sys
+import csv
 
 # storing variable data as dictionaries: key = index, value = column of file_name
 jd = {}  # julian day; not used in these methods but may be passed to other files
@@ -160,40 +161,46 @@ def collapse_flux_by_filter(start, end):
                 combined_end[filter] = [jd[end]]
 
 
-def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days):
+def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days, out_fil):
     """Obtaining calibrated magnitudes (for transients)."""
     zpavg = min(zpdiff.values())
     mag = 0
     sigma = 0
-    for filter in flux:
-        i = 0
-        while (i < len(flux[filter])):
-            if ((flux[filter][i] / flux_unc[filter][i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
-                # confident detection, plot magnitude with error bars
-                if flux[filter][i] < 0:
-                    mag = -(zpavg-2.5*math.log10(-flux[filter][i]))  # negative flux cannot be plotted using log10
-                else:
-                    mag = (zpavg - 2.5*math.log10(flux[filter][i]))  # plotted as points
+    with open(out_fil, 'w', newline = '') as csvfile:
+        my_writer = csv.writer(csvfile, delimiter = ' ')
+        my_writer.writerow(['#', 'JD', 'Mag', 'Sigma', 'Filter'])
+        for filter in flux:
+            i = 0
+            while (i < len(flux[filter])):
+                if ((flux[filter][i] / flux_unc[filter][i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
+                    # confident detection, plot magnitude with error bars
+                    if flux[filter][i] < 0:
+                        mag = -(zpavg-2.5*math.log10(-flux[filter][i]))  # negative flux cannot be plotted using log10
+                    else:
+                        mag = (zpavg - 2.5*math.log10(flux[filter][i]))  # plotted as points
                     sigma = 1.0857 * flux_unc[filter][i] / flux[filter][i]
-                if filter == 'ZTF_g':
-                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_g', c='blue')
-                    plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='blue')
-                elif filter == 'ZTF_r':
-                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_r', c='red')
-                    plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='red')
-                else:  # ZTF_i
-                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_i', c='green')
-                    plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='green')
-            else:
-                # compute upper flux limits and plot as arrow
-                mag = (zpavg - 2.5*math.log10(3*flux_unc[filter][i]))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
-                if filter == 'ZTF_g':
-                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='blue', label='Single upper-epoch limits')  # plot as arrow
-                elif filter == "ZTF_r":
-                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='red', label='Single upper-epoch limits')
-                else:  # ZTF_i
-                    plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='green', label='Single upper-epoch limits')
-            i += 1
+                    my_writer.writerow([(jd_end[filter][i]+jd_start[filter][i])/2, mag, sigma, filter])
+                    if filter == 'ZTF_g':
+                        plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_g', c='blue')
+                        plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='blue')
+                    elif filter == 'ZTF_r':
+                        plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_r', c='red')
+                        plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='red')
+                    else:  # ZTF_i
+                        plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, label='ZTF_i', c='green')
+                        plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='green')
+                else:
+                    # compute upper flux limits and plot as arrow
+                    mag = (zpavg - 2.5*math.log10(3*flux_unc[filter][i]))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+                    if filter == 'ZTF_g':
+                        plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='blue', label='Single upper-epoch limits')  # plot as arrow
+                    elif filter == "ZTF_r":
+                        plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='red', label='Single upper-epoch limits')
+                    else:  # ZTF_i
+                        plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='green', label='Single upper-epoch limits')
+                        my_writer.writerow([(jd_end[filter][i]+jd_start[filter][i])/2, mag, 'N/A', filter])
+                i += 1
+    csvfile.close()        
     plt.xlabel('jd')
     plt.ylabel('magnitude')
     plt.title("RA: " + ra + "\nDEC: " + dec + "\nDays Binned: " + str(num_days))  # will add title 
@@ -228,6 +235,7 @@ def main():
     end = 58 + int(input("Enter ending index: "))  # readlines method appears to be end exclusive, hence 57 + 1; 
     baseline = float(input("If there is any residual baseline (nonzero), input it here. Else, input 0: "))  # you will need to have examined a plot of forcediffimflux to jd to determine if there is any residual offset in the baseline (Masci et. al section 10)
     num_days = float(input("Enter the number of days to be binned at a time: "))
+    out_fil = str(input("Input output file name: "))
     with open(file_name) as f: # opens .txt file
         data = f.readlines()[start: end]
     sys.setrecursionlimit(len(data))
@@ -249,7 +257,7 @@ def main():
     for start in windows:
         rescale(start, windows[start])
         collapse_flux_by_filter(start, windows[start])
-    cal_mag(combined_flux, combined_unc, combined_start, combined_end, ra, dec, num_days)
+    cal_mag(combined_flux, combined_unc, combined_start, combined_end, ra, dec, num_days, out_fil)
     
 if __name__ == '__main__':  # invoke python main.py to run
     main()   
