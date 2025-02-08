@@ -172,7 +172,7 @@ def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days, out_fil):
         for filter in flux:
             i = 0
             while (i < len(flux[filter])):
-                if ((flux[filter][i] / flux_unc[filter][i]) > 5):  # 5 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
+                if ((flux[filter][i] / flux_unc[filter][i]) > 3):  # 3 is the signal to noise threshold for declaring a measurement a "non-detection", so that it can be assigned an upper-limit (see Masci et. al)
                     # confident detection, plot magnitude with error bars
                     if flux[filter][i] < 0:
                         mag = -(zpavg-2.5*math.log10(-flux[filter][i]))  # negative flux cannot be plotted using log10
@@ -191,7 +191,7 @@ def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days, out_fil):
                         plt.errorbar((jd_end[filter][i]+jd_start[filter][i])/2, mag, yerr=sigma, ls='none', c='green')
                 else:
                     # compute upper flux limits and plot as arrow
-                    mag = (zpavg - 2.5*math.log10(3*flux_unc[filter][i]))  # 3 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
+                    mag = (zpavg - 2.5*math.log10(5*flux_unc[filter][i]))  # 5 is the actual signal to noise ratio to use when computing SNU-sigma upper-limit
                     if filter == 'ZTF_g':
                         plt.scatter((jd_end[filter][i]+jd_start[filter][i])/2, mag, marker='v', c='blue', label='Single upper-epoch limits')  # plot as arrow
                     elif filter == "ZTF_r":
