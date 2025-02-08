@@ -199,6 +199,8 @@ def cal_mag(flux, flux_unc, jd_start, jd_end, ra, dec, num_days):
     plt.title("RA: " + ra + "\nDEC: " + dec + "\nDays Binned: " + str(num_days))  # will add title 
     plt.legend(labels=['ZTF_g', 'ZTF_r', 'ZTF_i'])
     leg = plt.gca().get_legend()
+    leg.legend_handles
+    leg.legend_handles[0].set_color('blue')
     leg.legend_handles[1].set_color('red')
     leg.legend_handles[2].set_color('green')
     plt.gca().invert_yaxis()
@@ -237,6 +239,7 @@ def main():
             ra = str(line.strip())[25:]
     f.close()
     with open(file_name) as f:
+        data = f.readlines()[4:5]
         for line in data:
             dec = str(line.strip())[25:]
     if baseline != 0:
