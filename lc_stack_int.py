@@ -4,7 +4,7 @@
 """
 Filename: lc_stack_int.py
 Author: Nat Heddaeus
-Date: 2024-04-23
+Date: 2024-04-30
 Version: 1.0
 Description: An optimized version of the code from lc_stack.py made for integration into the ztfrest pipeline. Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022. 
 
@@ -31,7 +31,9 @@ def stack_lc(tbl, days_stack):
                   dtype=('double', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'S', 'int'))  # used to output the stacked flux under new windows
     
     # make bins for stacking within inputted time windows
-    bins = np.arange(tbl['jd,'][0], tbl['jd,'][length] + days_stack, days_stack)  # creates a bin for every day between the start and end date with mesh size of days_stack
+    jd = np.array(tbl['jd,'])
+    fil = tbl['filter,']  # filter by index
+    bins = np.arange(jd[0] + days_stack, jd[length] + days_stack, days_stack)  # creates a bin for every day between the start and end date with mesh size of days_stack
     bin_len = len(bins)
 
     # correct baseline, validate uncertainties, rescale, collapse flux by filter, cal mag
@@ -40,7 +42,7 @@ def stack_lc(tbl, days_stack):
     rs_flux = np.zeros(length+1)  # variable for rescaled fluxes
     rs_unc = np.zeros(length+1)  # variable for rescaled flux uncertainties
 
-    for index in range (0, length):
+    for index in range (0, length + 1):
         if (tbl['forcediffimflux,'][index]) != 'null':
             flux_i = np.copy(tbl['forcediffimflux,'][index]).astype(np.float64)  # old forcediffimflux value
             unc_i = np.copy(tbl['forcediffimfluxunc,'][index]).astype(np.float64)  # old forcediffimfluxunc value
@@ -48,14 +50,33 @@ def stack_lc(tbl, days_stack):
             rs_flux[index] = flux_i*10**(0.4 * (zpavg-zpdiff_i))  # rescale the flux
             rs_unc[index] = unc_i*10**(0.4 * (zpavg-zpdiff_i))  # rescale the corresponding uncertainty
         else:
-            continue
+            rs_flux[index] = np.nan
+            rs_unc[index] = np.nan
 
     # combine flux measurements by filter
-    bin_flux = np.zeros(bin_len)
-    filters = list(set(tbl['filter,']))  # fetches each unique filter
+    filters = list(set(fil))  # fetches each unique filter
+    bin_flux = np.zeros((bin_len, len(filters)))
+    bin_unc = np.zeros((bin_len, len(filters)))
+    for i in range(0, len(filters)):
+        f_idx = np.where(fil==filters[i])[0]  # get all indices for a particular filter
+        jd_bin = jd[f_idx]
+        for j in range(0, bin_len):
+            bin_idx = np.where(jd_bin <= bins[j])[0]
+            bin_idx = np.where(jd_bin[bin_idx] > bins[j-1])[0]
+            w = 1/(rs_unc[bin_idx])**2
+            if w.size > 0:
+                bin_flux[j, i] = np.nansum(w*rs_flux[bin_idx])/np.nansum(w)  # combined flux, filter
+                bin_unc[j, i] = np.nansum(w)**(-1/2)  # combined unc, filter
+
+    print(bin_flux)
 
 
 
+
+
+
+
+                
 
 
 if __name__ == "__main__":
