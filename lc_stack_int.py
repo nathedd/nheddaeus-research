@@ -14,6 +14,8 @@ Contact: nathedd@unc.edu
 from astropy.io import ascii  # for reading files
 from astropy.table import Table  # for outputting results
 import numpy as np
+import math
+import matplotlib.pyplot as plt
 
 
 def stack_lc(tbl, days_stack): 
@@ -55,8 +57,8 @@ def stack_lc(tbl, days_stack):
 
     # combine flux measurements by filter
     filters = list(set(fil))  # fetches each unique filter
-    bin_flux = np.zeros((bin_len, len(filters)))
-    bin_unc = np.zeros((bin_len, len(filters)))
+    bin_flux = np.zeros((bin_len, 2))
+    bin_unc = np.zeros((bin_len, 2))
     for i in range(0, len(filters)):
         f_idx = np.where(fil==filters[i])[0]  # get all indices for a particular filter
         jd_bin = jd[f_idx]
@@ -65,10 +67,35 @@ def stack_lc(tbl, days_stack):
             bin_idx = np.where(jd_bin[bin_idx] > bins[j-1])[0]
             w = 1/(rs_unc[bin_idx])**2
             if w.size > 0:
-                bin_flux[j, i] = np.nansum(w*rs_flux[bin_idx])/np.nansum(w)  # combined flux, filter
-                bin_unc[j, i] = np.nansum(w)**(-1/2)  # combined unc, filter
+                bin_flux[j, 0] = np.nansum(w*rs_flux[bin_idx])/np.nansum(w)
+                bin_unc[j, 0] = np.nansum(w)**(-1/2)  # combined unc
+                bin_flux[j, 1] = i  # filter
+                bin_unc[j, 1] = i  # filter
+    
+    # calculate calibrated magnitudes
+    mag = np.zeros(bin_len)
+    sigma = np.zeros(bin_len)
+    flux_ul = np.zeros(bin_len)
+    for i in range (0, bin_len):
+        flux_i = bin_flux[i, 0]
+        unc_i = bin_unc[i, 0]
+        if flux_i != 0:
+            if (flux_i/unc_i) > snt_det:  # confident detection
+                mag[i] = zpavg - 2.5*math.log[bin_flux[i]]
+                sigma[i] = 1.0857*unc_i/flux_i
+                flux_ul[i] = np.nan
+            else:
+                flux_ul[i] = zpavg - 2.5*math.log[snt_ul*unc_i]  # compute flux upper limit
+                mag[i] = np.nan
+                sigma[i] = np.nan
+        else:
+            mag[i] = np.nan
+            sigma[i] = np.nan
+    
 
-    print(bin_flux)
+    # plot calibrated magnitudes
+
+    print('yello')
 
 
 
