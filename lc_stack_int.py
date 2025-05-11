@@ -15,6 +15,7 @@ from astropy.io import ascii  # for reading files
 from astropy.table import Table  # for outputting results
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines  # for adjusting markers
 
 
 def stack_lc(tbl, days_stack): 
@@ -117,11 +118,20 @@ def plot_lc(t_out):
         mags = mag[idx]
         jds = jd[idx]
         sigmas = sigma[idx]
+
+        plt.scatter(jds, mags, c=colors[i])  # plot AB magnitudes
+        plt.errorbar(jds, mags, yerr=sigmas, ls='none', c=colors[i])  # plot sigmas
+    
+    plt.legend(labels=filters)
+    leg = plt.gca().get_legend()
+
+    for i in range(0, len(filters)):
+        leg.legend_handles[i].set_color(colors[i])
+        idx = np.where(fil == filters[i])[0]
+        jds = jd[idx]
         uls = flux_ul[idx]
 
-        plt.scatter(jds, mags, c=colors[i])
-        plt.errorbar(jds, mags, yerr=sigmas, ls='none', c=colors[i])
-        plt.scatter(jds, uls, marker='v', color=colors[i])
+        plt.scatter(jds, uls, marker='v', color=colors[i])  # plot flux upper limits
 
     plt.gca().invert_yaxis()
     plt.xlabel('jd')
