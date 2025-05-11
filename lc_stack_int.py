@@ -54,7 +54,7 @@ def stack_lc(tbl, days_stack):
             rs_unc[index] = np.nan
 
     # combine flux measurements by filter
-    filters = list(set(fil))  # fetches each unique filter
+    filters = list(dict.fromkeys(fil))  # fetches each unique filter
     bin_flux = np.zeros((bin_len, 2))
     bin_unc = np.zeros((bin_len, 2))
     for i in range(0, len(filters)):
@@ -110,7 +110,7 @@ def plot_lc(t_out):
     fil = np.array(t_out['filter'])  # filters start with b for some reason
     flux_ul = np.array(t_out['flux_ul'])
 
-    filters = list(set(fil))
+    filters = list(dict.fromkeys(fil))
     colors = ['red', 'blue', 'green', 'purple', 'gray', 'olive', 'cyan', 'pink', 'brown', 'orange']
     for i in range(0, len(filters)):
         idx = np.where(fil == filters[i])[0]
