@@ -107,7 +107,7 @@ def plot_lc(t_out):
     jd = np.array(t_out['jd'])
     mag = np.array(t_out['mag'])
     sigma = np.array(t_out['mag_unc'])
-    fil = np.array(t_out['filter'])
+    fil = np.array(t_out['filter'])  # filters start with b for some reason
     flux_ul = np.array(t_out['flux_ul'])
 
     filters = list(set(fil))
@@ -127,12 +127,7 @@ def plot_lc(t_out):
     plt.xlabel('jd')
     plt.ylabel('AB magnitude')
     plt.show()
-
-
-
-
                 
-
 
 if __name__ == "__main__":
     filename1 = str(input("Input filename: "))  # this line can be replaced with a hardcoded file
