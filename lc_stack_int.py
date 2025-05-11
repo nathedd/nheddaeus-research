@@ -27,10 +27,10 @@ def stack_lc(tbl, days_stack):
 
     length = len(tbl) - 1 # number of rows of data (zero indexed)
 
-    t_out = Table([[],[],[],[],[],[],[],[],[],[]],
-                  names=('jd', 'flux', 'flux_unc', 'zp', 'ezp',
-                         'mag', 'mag_unc', 'limmag', 'filter', 'programid'),
-                  dtype=('double', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'S', 'int'))  # used to output the stacked flux under new windows
+    t_out = Table([[],[],[],[],[],[],[],[]],
+                  names=('jd', 'flux', 'flux_unc', 'flux_ul', 'zp',
+                         'mag', 'mag_unc', 'filter'),
+                  dtype=('double', 'f', 'f', 'f', 'f', 'f', 'f', 'S'))  # used to output the stacked flux under new windows
     
     # make bins for stacking within inputted time windows
     jd = np.array(tbl['jd,'])
@@ -69,8 +69,9 @@ def stack_lc(tbl, days_stack):
                 bin_idx = np.where(jd[new_idx] > bins[j-1])[0]  # get valid upper limit indices in jd_bin
                 new_idx = new_idx[bin_idx]
             w = 1/(rs_unc[new_idx])**2
-            if w.size > 0:
-                bin_flux[j, 0] = np.nansum(w*rs_flux[new_idx])/np.nansum(w)
+            w_sum = np.nansum(w)  # prevents RuntimeWarning with scalar divide/scalar power
+            if w.size > 0 and w_sum != 0:
+                bin_flux[j, 0] = np.nansum(w*rs_flux[new_idx])/w_sum
                 bin_unc[j, 0] = np.nansum(w)**(-1/2)  # combined unc
                 bin_flux[j, 1] = i  # filter
                 bin_unc[j, 1] = i  # filter
@@ -82,6 +83,7 @@ def stack_lc(tbl, days_stack):
     for i in range (0, bin_len):
         flux_i = bin_flux[i, 0]
         unc_i = bin_unc[i, 0]
+        filt_i = int(bin_flux[i, 1])  # index in filters
         if flux_i != 0:
             if (flux_i/unc_i) > snt_det:  # confident detection
                 mag[i] = zpavg - 2.5*math.log(flux_i)
@@ -95,27 +97,36 @@ def stack_lc(tbl, days_stack):
             flux_ul[i] = np.nan
             mag[i] = np.nan
             sigma[i] = np.nan
+        
+        # fill in output table
+        t_out.add_row([bins[i], flux_i, unc_i, flux_ul[i], zpavg, mag[i], sigma[i], filters[filt_i]])
+    return t_out
 
-    # plot
-    r = np.where(bin_flux[:, 1] == 0)
-    plt.scatter(bins[r], mag[r], c='blue')
-    plt.errorbar(bins[r], mag[r], yerr=sigma[r], ls='none', color='blue')
 
-    plt.scatter(bins[r], flux_ul[r], marker='v', color='blue')
+def plot_lc(t_out):
+    """Make a light curve of the binned fluxes."""
+    jd = np.array(t_out['jd'])
+    mag = np.array(t_out['mag'])
+    sigma = np.array(t_out['mag_unc'])
+    fil = np.array(t_out['filter'])
+    flux_ul = np.array(t_out['flux_ul'])
 
-    g = np.where(bin_flux[:, 1] == 1)
-    plt.scatter(bins[g], mag[g], c='red')
-    plt.errorbar(bins[g], mag[g], yerr=sigma[g], ls='none', color='red')
+    filters = list(set(fil))
+    colors = ['red', 'blue', 'green', 'purple', 'gray', 'olive', 'cyan', 'pink', 'brown', 'orange']
+    for i in range(0, len(filters)):
+        idx = np.where(fil == filters[i])[0]
+        mags = mag[idx]
+        jds = jd[idx]
+        sigmas = sigma[idx]
+        uls = flux_ul[idx]
 
-    plt.scatter(bins[g], flux_ul[g], marker='v', color='red')
-
-    b = np.where(bin_flux[:, 1] == 2)
-    plt.scatter(bins[b], mag[b], c='green')
-    plt.errorbar(bins[b], mag[b], yerr=sigma[b], ls='none', color='green')
-
-    plt.scatter(bins[b], flux_ul[b], marker='v', color='green')
+        plt.scatter(jds, mags, c=colors[i])
+        plt.errorbar(jds, mags, yerr=sigmas, ls='none', c=colors[i])
+        plt.scatter(jds, uls, marker='v', color=colors[i])
 
     plt.gca().invert_yaxis()
+    plt.xlabel('jd')
+    plt.ylabel('AB magnitude')
     plt.show()
 
 
@@ -127,4 +138,5 @@ def stack_lc(tbl, days_stack):
 if __name__ == "__main__":
     filename1 = str(input("Input filename: "))  # this line can be replaced with a hardcoded file
     tbl = ascii.read(filename1, delimiter=' ', header_start=0)  # the script is hardcoded to work with ZTF files, references to header names may need to be changed for outside files
-    stack_lc(tbl, 1.5)
+    t_out = stack_lc(tbl, 1.5)
+    plot_lc(t_out)
