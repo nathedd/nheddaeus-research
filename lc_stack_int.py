@@ -14,7 +14,6 @@ Contact: nathedd@unc.edu
 from astropy.io import ascii  # for reading files
 from astropy.table import Table  # for outputting results
 import numpy as np
-import math
 import matplotlib.pyplot as plt
 
 
@@ -28,8 +27,8 @@ def stack_lc(tbl, days_stack):
     length = len(tbl) - 1 # number of rows of data (zero indexed)
 
     t_out = Table([[],[],[],[],[],[],[],[]],
-                  names=('jd', 'flux', 'flux_unc', 'flux_ul', 'zp',
-                         'mag', 'mag_unc', 'filter'),
+                  names=('jd', 'flux', 'flux_unc', 'zp',
+                         'mag', 'mag_unc', 'flux_ul', 'filter'),
                   dtype=('double', 'f', 'f', 'f', 'f', 'f', 'f', 'S'))  # used to output the stacked flux under new windows
     
     # make bins for stacking within inputted time windows
@@ -86,11 +85,11 @@ def stack_lc(tbl, days_stack):
         filt_i = int(bin_flux[i, 1])  # index in filters
         if flux_i != 0:
             if (flux_i/unc_i) > snt_det:  # confident detection
-                mag[i] = zpavg - 2.5*math.log(flux_i)
-                sigma[i] = 1.0857*unc_i/flux_i
+                mag[i] = zpavg - 2.5*np.log10(flux_i)  # compute AB magnitude
+                sigma[i] = 1.0857*unc_i/flux_i  # compute uncertainty in magnitude
                 flux_ul[i] = np.nan
             else:
-                flux_ul[i] = zpavg - 2.5*math.log(snt_ul*unc_i)  # compute flux upper limit
+                flux_ul[i] = zpavg - 2.5*np.log10(snt_ul*unc_i)  # compute flux upper limit
                 mag[i] = np.nan
                 sigma[i] = np.nan
         else:
@@ -99,7 +98,7 @@ def stack_lc(tbl, days_stack):
             sigma[i] = np.nan
         
         # fill in output table
-        t_out.add_row([bins[i], flux_i, unc_i, flux_ul[i], zpavg, mag[i], sigma[i], filters[filt_i]])
+        t_out.add_row([bins[i], flux_i, unc_i, zpavg, mag[i], sigma[i], flux_ul[i], filters[filt_i]])
     return t_out
 
 
