@@ -4,7 +4,7 @@
 """
 Filename: lc_stack_int.py
 Author: Nat Heddaeus
-Date: 2024-05-11
+Date: 2024-05-12
 Version: 1.0
 Description: An optimized version of the code from lc_stack.py made for integration into the ztfrest pipeline. Given a dataframe with a maxlike light curve, stack the flux. Based on guidelines from "Generating Lightcurves from Forced PSF-fit Photometry on ZTF Difference Images" by Masci et. al, 2022. 
 
@@ -15,7 +15,6 @@ from astropy.io import ascii  # for reading files
 from astropy.table import Table  # for outputting results
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines  # for adjusting markers
 
 
 def stack_lc(tbl, days_stack): 
@@ -65,16 +64,16 @@ def stack_lc(tbl, days_stack):
             bin_idx = np.where(jd[new_idx] <= bins[j])[0]  # get valid lower limit indices in jd_bin
             if bin_idx.size != 0:
                 new_idx = new_idx[bin_idx]
-            if j != 0 and new_idx.size != 0:
-                bin_idx = np.where(jd[new_idx] > bins[j-1])[0]  # get valid upper limit indices in jd_bin
-                new_idx = new_idx[bin_idx]
-            w = 1/(rs_unc[new_idx])**2
-            w_sum = np.nansum(w)  # prevents RuntimeWarning with scalar divide/scalar power
-            if w.size > 0 and w_sum != 0:
-                bin_flux[j, 0] = np.nansum(w*rs_flux[new_idx])/w_sum
-                bin_unc[j, 0] = np.nansum(w)**(-1/2)  # combined unc
-                bin_flux[j, 1] = i  # filter
-                bin_unc[j, 1] = i  # filter
+                if j != 0 and new_idx.size != 0:
+                    bin_idx = np.where(jd[new_idx] > bins[j-1])[0]  # get valid upper limit indices in jd_bin
+                    new_idx = new_idx[bin_idx]
+                w = 1/(rs_unc[new_idx])**2
+                w_sum = np.nansum(w)  # prevents RuntimeWarning with scalar divide/scalar power
+                if w.size > 0 and w_sum != 0:
+                    bin_flux[j, 0] = np.nansum(w*rs_flux[new_idx])/w_sum
+                    bin_unc[j, 0] = np.nansum(w)**(-1/2)  # combined unc
+                    bin_flux[j, 1] = i  # filter
+                    bin_unc[j, 1] = i  # filter
     
     # calculate calibrated magnitudes
     mag = np.zeros(bin_len)
@@ -136,11 +135,13 @@ def plot_lc(t_out):
     plt.gca().invert_yaxis()
     plt.xlabel('jd')
     plt.ylabel('AB magnitude')
+    plt.title("RA: 342.64677085000005\nDEC: 42.65911744583334\nDays Binned: 1")
     plt.show()
                 
 
 if __name__ == "__main__":
     filename1 = str(input("Input filename: "))  # this line can be replaced with a hardcoded file
     tbl = ascii.read(filename1, delimiter=' ', header_start=0)  # the script is hardcoded to work with ZTF files, references to header names may need to be changed for outside files
-    t_out = stack_lc(tbl, 1.5)
+    t_out = stack_lc(tbl, 1)
+    print(t_out)
     plot_lc(t_out)
